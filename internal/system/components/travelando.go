@@ -144,10 +144,41 @@ func portalHeader(home, logout, path, navLabel string, links ...portalLink) Node
 
 func SiteFooter() Node {
 	return Footer(Class("border-t border-line bg-cream"),
-		Div(Class("mx-auto flex max-w-7xl flex-col gap-2 px-5 py-7 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8"),
-			Brand(),
-			P(Text("Encuentra tu próxima escapada.")),
+		Div(Class("mx-auto flex max-w-7xl flex-col gap-4 px-5 py-7 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-8"),
+			Div(Class("flex flex-col gap-2"),
+				Brand(),
+				P(Text("Encuentra tu próxima escapada.")),
+			),
+			Nav(Attr("aria-label", "Redes sociales"), Class("flex items-center gap-2"),
+				socialLink("https://api.whatsapp.com/message/MQDALY2E3MHQK1?autoload=1&app_absent=0", "WhatsApp", whatsAppIcon()),
+				socialLink("https://www.instagram.com/travelando.co/", "Instagram", instagramIcon()),
+				socialLink("https://www.tiktok.com/@travelandoconvictor", "TikTok", tikTokIcon()),
+			),
 		),
+	)
+}
+
+func socialLink(href, label string, icon Node) Node {
+	return A(Href(href), Attr("aria-label", label), Title(label), Attr("target", "_blank"), Attr("rel", "noopener noreferrer"), Class("inline-flex size-10 items-center justify-center rounded-full text-muted transition hover:bg-white hover:text-brand-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), icon)
+}
+
+func whatsAppIcon() Node {
+	return El("svg", Attr("viewBox", "0 0 24 24"), Attr("fill", "currentColor"), Attr("aria-hidden", "true"), Class("size-5"),
+		El("path", Attr("d", "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.099-.198.05-.372-.025-.52-.075-.149-.669-1.612-.916-2.207-.241-.579-.487-.5-.669-.51-.173-.009-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.064 2.875 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347M12.05 22a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.86 9.86 0 0 1-1.511-5.26c.001-5.45 4.437-9.884 9.888-9.884 2.64.001 5.122 1.03 6.99 2.898a9.825 9.825 0 0 1 2.893 6.994C21.938 17.566 17.503 22 12.05 22m8.413-18.297A11.815 11.815 0 0 0 12.05.105C5.495.105.16 5.44.157 11.997c-.001 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.88 11.88 0 0 0 5.684 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.479-8.198")),
+	)
+}
+
+func instagramIcon() Node {
+	return El("svg", Attr("viewBox", "0 0 24 24"), Attr("fill", "none"), Attr("stroke", "currentColor"), Attr("stroke-width", "1.8"), Attr("aria-hidden", "true"), Class("size-5"),
+		El("rect", Attr("x", "3"), Attr("y", "3"), Attr("width", "18"), Attr("height", "18"), Attr("rx", "5")),
+		El("circle", Attr("cx", "12"), Attr("cy", "12"), Attr("r", "4")),
+		El("circle", Attr("cx", "17.5"), Attr("cy", "6.5"), Attr("r", ".75"), Attr("fill", "currentColor"), Attr("stroke", "none")),
+	)
+}
+
+func tikTokIcon() Node {
+	return El("svg", Attr("viewBox", "0 0 24 24"), Attr("fill", "currentColor"), Attr("aria-hidden", "true"), Class("size-5"),
+		El("path", Attr("d", "M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.89 2.89 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.3 0 .6.05.89.14V9.4a6.4 6.4 0 0 0-.89-.06 6.34 6.34 0 0 0-6.34 6.33A6.34 6.34 0 0 0 9.48 22a6.34 6.34 0 0 0 6.34-6.33V9.05a8.18 8.18 0 0 0 4.77 1.53V7.13c-.34 0-.68-.16-1-.44Z")),
 	)
 }
 

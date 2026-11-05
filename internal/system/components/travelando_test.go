@@ -44,6 +44,25 @@ func TestBrandUsesTravelandoIcon(t *testing.T) {
 	}
 }
 
+func TestSiteFooterIncludesSocialLinks(t *testing.T) {
+	var output bytes.Buffer
+	if err := SiteFooter().Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	html := output.String()
+	for _, want := range []string{
+		`href="https://api.whatsapp.com/message/MQDALY2E3MHQK1?autoload=1&amp;app_absent=0"`,
+		`href="https://www.instagram.com/travelando.co/"`,
+		`href="https://www.tiktok.com/@travelandoconvictor"`,
+		`target="_blank"`, `rel="noopener noreferrer"`, `aria-label="WhatsApp"`, `aria-label="Instagram"`, `aria-label="TikTok"`,
+		`<svg`, `<path`, `<circle`, `<rect`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("site footer missing %q: %s", want, html)
+		}
+	}
+}
+
 func TestCabinPhotoCarouselShowsPlaceholderWithoutPhotos(t *testing.T) {
 	var output bytes.Buffer
 	if err := CabinPhotoCarousel("Cabaña", nil).Render(&output); err != nil {
