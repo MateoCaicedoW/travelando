@@ -41,6 +41,53 @@ textarea:focus {
   outline-offset: 3px;
 }
 
+.travelando-combobox [data-popover] {
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms;
+}
+
+.travelando-combobox [data-popover][aria-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.25rem);
+}
+
+.travelando-combobox [data-popover][aria-hidden="false"] {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.travelando-combobox [role="option"][aria-hidden="true"] {
+  display: none;
+}
+
+.travelando-combobox [role="option"]:hover,
+.travelando-combobox [role="option"].active,
+.travelando-combobox [role="option"]:focus-visible {
+  background: var(--color-cream);
+  color: var(--color-brand-dark);
+}
+
+.travelando-combobox [role="option"][aria-selected="true"] {
+  background: var(--color-forest-soft);
+  color: var(--color-forest);
+}
+
+.travelando-combobox [role="listbox"][data-empty="true"]::before {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  content: "No hay coincidencias.";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travelando-combobox [data-popover] {
+    transition: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

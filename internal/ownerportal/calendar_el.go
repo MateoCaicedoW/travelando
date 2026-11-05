@@ -113,6 +113,10 @@ func ownerExternalBlockForm(cabins []models.Cabin, state *blockFormState, month 
 		fromValue, toValue, cabinValue = state.Values.Get("date_from"), state.Values.Get("date_to"), state.Values.Get("cabin_id")
 		fromError, toError, cabinError = state.Errors.ErrorStringFor("date_from"), state.Errors.ErrorStringFor("date_to"), state.Errors.ErrorStringFor("cabin_id")
 	}
+	cabinOptions := make([]components.SearchableOption, len(cabins))
+	for i, cabin := range cabins {
+		cabinOptions[i] = components.SearchableOption{Value: strconv.FormatInt(cabin.ID, 10), Label: cabin.Name}
+	}
 	formAction := "/owner/blocks?month=" + strconv.Itoa(int(month)) + "&year=" + strconv.Itoa(year)
 	return Div(Class("mx-auto w-full max-w-4xl p-4 sm:p-7"),
 		Div(Class("flex items-start justify-between gap-4"),
@@ -120,15 +124,8 @@ func ownerExternalBlockForm(cabins []models.Cabin, state *blockFormState, month 
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
 		Form(Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", "#owner-content"), Attr("hx-swap", "outerHTML"), Class("mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"),
-			Div(Class("min-w-0"), components.FieldLabel("cabin_id", "Cabaña"),
-				Select(ID("cabin_id"), Name("cabin_id"), Required(), If(cabinError != "", Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "cabin_id-error")}), Class("min-h-11 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-base text-ink"),
-					Option(Value(""), If(cabinValue == "", Selected()), Text("Elige una cabaña")),
-					Map(cabins, func(cabin models.Cabin) Node {
-						id := strconv.FormatInt(cabin.ID, 10)
-						return Option(Value(id), If(cabinValue == id, Selected()), Text(cabin.Name))
-					}),
-				),
-				components.FieldError("cabin_id", cabinError),
+			Div(Class("min-w-0"),
+				components.SearchableSelect("cabin_id", "cabin_id", "Cabaña", "Busca una cabaña", cabinValue, cabinOptions, true, cabinError),
 			),
 			components.TextFieldWithError("external-from", "date_from", "Desde", fromValue, "", "date", true, fromError),
 			components.TextFieldWithError("external-to", "date_to", "Hasta (sin incluir)", toValue, "", "date", true, toError),

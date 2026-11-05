@@ -48,6 +48,14 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 		return fallback
 	}
 	ownerIDValue := fieldValue("owner_id", strconv.FormatInt(cabin.OwnerID, 10))
+	ownerOptions := make([]components.SearchableOption, len(owners))
+	for i, owner := range owners {
+		label := owner.Name + " · " + owner.Cedula + " · " + owner.WhatsApp
+		if !owner.Active {
+			label += " · Inactivo"
+		}
+		ownerOptions[i] = components.SearchableOption{Value: strconv.FormatInt(owner.ID, 10), Label: label}
+	}
 	blockValue := func(key string) string {
 		if blockValues != nil {
 			return blockValues.Get(key)
@@ -78,20 +86,8 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
 					Div(Class("sm:col-span-2"), H2(Class("text-base font-extrabold text-ink"), Text("Dueño de la cabaña"))),
 					Div(Class("min-w-0 sm:col-span-2"),
-						components.FieldLabel("owner_id", "Dueño"),
-						Select(ID("owner_id"), Name("owner_id"), If(fieldErrors.Has("owner_id"), Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "owner_id-error")}), Class("min-h-11 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-base text-ink focus:border-brand focus:ring-2 focus:ring-brand/20"),
-							Option(Value(""), If(ownerIDValue == "", Selected()), Text("Elige un dueño")),
-							Map(owners, func(owner models.Owner) Node {
-								id := strconv.FormatInt(owner.ID, 10)
-								label := owner.Name + " · " + owner.Cedula + " · " + owner.WhatsApp
-								if !owner.Active {
-									label += " · Inactivo"
-								}
-								return Option(Value(id), If(ownerIDValue == id, Selected()), Text(label))
-							}),
-						),
+						components.SearchableSelect("owner_id", "owner_id", "Dueño", "Busca un dueño", ownerIDValue, ownerOptions, false, fieldErrors.ErrorStringFor("owner_id")),
 						P(Class("mt-1 text-xs text-muted"), Text("El nombre y WhatsApp de contacto vienen del dueño.")),
-						components.FieldError("owner_id", fieldErrors.ErrorStringFor("owner_id")),
 					),
 				)),
 				Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
