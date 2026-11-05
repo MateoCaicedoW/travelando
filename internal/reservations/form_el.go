@@ -12,13 +12,14 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func reservationForm(inquiry models.Inquiry, state *formState, owner bool) Node {
+func reservationForm(inquiry models.Inquiry, state *formState, owner bool, returnTo string) Node {
 	values := url.Values{}
 	if state == nil {
 		values = inquiryFormValues(inquiry)
 	} else {
 		values = state.Values
 	}
+	isPending := inquiry.Status == models.InquiryPending
 	id := strconv.FormatInt(inquiry.ID, 10)
 	action := "/admin/inquiries/" + id
 	if owner {
@@ -38,7 +39,13 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool) Node 
 		balanceLabel = "Saldo al día"
 		balanceClass = "text-forest"
 	}
-	heading := Div(Class("flex items-start justify-between gap-4"), components.PageHeading("Editar reserva", inquiry.CabinName+" · "+helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)),
+	headingTitle := "Editar reserva"
+	submitLabel := "Guardar cambios"
+	if isPending {
+		headingTitle = "Editar solicitud"
+		submitLabel = "Guardar solicitud"
+	}
+	heading := Div(Class("flex items-start justify-between gap-4"), components.PageHeading(headingTitle, inquiry.CabinName+" · "+helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)),
 		Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), Text("×")),
 	)
 	return Div(ID("reservation-form-content"), Class("w-full px-5 py-8 sm:px-8 sm:py-12"),
@@ -46,6 +53,7 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool) Node 
 		noticeEl(state),
 		Div(Class("rounded-2xl border border-line bg-white p-5 sm:p-7"),
 			Form(Method("post"), Action(action), Attr("hx-post", action), Attr("hx-target", "#reservation-form-content"), Attr("hx-swap", "outerHTML"), Class("grid gap-4 sm:grid-cols-2"),
+				If(returnTo == "reservations", Input(Type("hidden"), Name("return_to"), Value(returnTo))),
 				components.TextFieldWithError("guest-name", "guest_name", "Nombre del huésped", values.Get("guest_name"), "", "text", true, fieldError(state, "guest_name")),
 				components.TextFieldWithError("guest-phone", "guest_phone", "Teléfono", values.Get("guest_phone"), "", "tel", true, fieldError(state, "guest_phone")),
 				Div(Class("sm:col-span-2"), components.TextFieldWithError("guest-email", "guest_email", "Correo electrónico", values.Get("guest_email"), "", "email", true, fieldError(state, "guest_email"))),
@@ -60,7 +68,11 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool) Node 
 				components.TextFieldWithError("date-from", "date_from", "Llegada", values.Get("date_from"), "", "date", true, fieldError(state, "date_from")),
 				components.TextFieldWithError("date-to", "date_to", dateToLabel, values.Get("date_to"), "", "date", true, fieldError(state, "date_to")),
 				components.NumberFieldWithError("guests", "guests", "Huéspedes", values.Get("guests"), "1", "", fieldError(state, "guests")),
-				Div(Class("sm:col-span-2 rounded-xl bg-cream p-4"),
+				If(isPending, Div(Class("sm:col-span-2 rounded-xl bg-forest-soft p-4"),
+					P(Class("text-sm font-extrabold text-forest"), Text("Estimado actual: $"+helpers.FormatCOP(inquiry.Estimated)+" COP")),
+					P(Class("mt-1 text-sm leading-6 text-muted"), Text("Al guardar, recalcularemos el estimado con las tarifas actuales y el depósito guardado.")),
+				)),
+				If(!isPending, Div(Class("sm:col-span-2 rounded-xl bg-cream p-4"),
 					components.NumberFieldWithError("final-total", "final_total", "Total acordado, incluido depósito (COP)", values.Get("final_total"), strconv.FormatInt(inquiry.DepositCOP, 10), "1000000000000", fieldError(state, "final_total")),
 					Label(Class("mt-3 flex items-start gap-2 text-sm font-semibold text-ink"),
 						Input(Type("checkbox"), Name("use_final_total"), Value("on"), If(values.Get("use_final_total") == "on", Checked()), Class("mt-1 size-4 accent-brand-dark")),
@@ -83,9 +95,9 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool) Node 
 							return P(Class("mt-1 text-xs text-muted"), Text(adjustment.CreatedAt+" · "+actor+" · $"+helpers.FormatCOP(adjustment.PreviousAmount)+" → $"+helpers.FormatCOP(adjustment.NewAmount)+" ("+sign+"$"+helpers.FormatCOP(abs(adjustment.Amount))+")"))
 						}),
 					)),
-				),
+				)),
 				Div(Class("flex flex-wrap items-center gap-3 sm:col-span-2"),
-					Button(Type("submit"), Class("inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), Text("Guardar cambios")),
+					Button(Type("submit"), Class("inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), Text(submitLabel)),
 					Button(Type("button"), Attr("data-action", "click->modal#close"), Class("font-bold text-brand-dark hover:underline"), Text("Cancelar")),
 				),
 			),

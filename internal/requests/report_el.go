@@ -21,6 +21,11 @@ func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldEr
 		statusLabel = "Reserva confirmada"
 	} else if inquiry.Status == models.InquiryLost {
 		statusLabel = "No se concretó"
+	} else if inquiry.Status == models.InquiryCancelled {
+		statusLabel = "Reserva cancelada"
+		if inquiry.CancelledFromStatus == models.InquiryPending {
+			statusLabel = "Solicitud cancelada"
+		}
 	}
 	statusValue := string(models.InquiryReserved)
 	totalValue := strconv.FormatInt(inquiry.Estimated, 10)

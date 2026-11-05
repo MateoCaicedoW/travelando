@@ -48,7 +48,7 @@ func (s *ownerService) Owners() ([]models.Owner, error) {
 			CASE WHEN o.pin_hash <> '' THEN 1 ELSE 0 END, o.active
 		FROM owners o
 		LEFT JOIN cabins c ON c.owner_id = o.id
-		LEFT JOIN inquiries i ON i.cabin_id = c.id AND i.status = 'reserved'
+		LEFT JOIN inquiries i ON i.cabin_id = c.id AND (i.status = 'reserved' OR i.cancelled_at IS NOT NULL)
 		GROUP BY o.id
 		ORDER BY o.name, o.id
 	`)

@@ -47,7 +47,8 @@ type portalLink struct {
 
 func AdminHeader(path string) Node {
 	links := []portalLink{
-		portalLink{"Solicitudes", "/admin/", lucide.ClipboardList(Class("size-4"), Attr("aria-hidden", "true"))},
+		portalLink{"Inicio", "/admin/", lucide.ClipboardList(Class("size-4"), Attr("aria-hidden", "true"))},
+		portalLink{"Reservas", "/admin/reservations", lucide.BookOpenCheck(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Calendario", "/admin/calendar", lucide.CalendarDays(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Cabañas", "/admin/cabins", lucide.BedDouble(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Amenidades", "/admin/amenities", lucide.Sparkles(Class("size-4"), Attr("aria-hidden", "true"))},
@@ -85,7 +86,7 @@ func AdminHeader(path string) Node {
 }
 
 func AdminMobileBar() Node {
-	return Header(Class("flex min-h-16 items-center gap-3 border-b border-line bg-white px-5 lg:hidden"),
+	return Header(Class("sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-line bg-white px-5 lg:hidden"),
 		Button(Type("button"), Attr("aria-label", "Abrir navegación"), Attr("aria-controls", "admin-sidebar"), Attr("aria-expanded", "false"), Attr("data-admin-navigation-target", "mobileButton"), Attr("data-action", "click->admin-navigation#toggleMobile"), Class("inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
 			lucide.Menu(Class("size-5"), Attr("aria-hidden", "true")),
 		),
@@ -100,6 +101,7 @@ func AdminNavigationBackdrop() Node {
 func OwnerHeader(path string) Node {
 	return portalHeader("/owner/", "/owner/logout", path, "Navegación de dueño",
 		portalLink{"Calendario", "/owner/", lucide.CalendarDays(Class("size-4"), Attr("aria-hidden", "true"))},
+		portalLink{"Reservas", "/owner/reservations", lucide.BookOpenCheck(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Mis cabañas", "/owner/cabins", lucide.BedDouble(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Amenidades", "/owner/amenities", lucide.Sparkles(Class("size-4"), Attr("aria-hidden", "true"))},
 	)

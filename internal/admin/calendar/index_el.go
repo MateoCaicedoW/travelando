@@ -118,18 +118,16 @@ func calendarDayEl(day time.Time, view calendarView) Node {
 	}
 	key := day.Format("2006-01-02")
 	entries := view.Entries[key]
-	classes := "relative h-[4.25rem] rounded-lg border border-line p-1.5 text-left sm:h-24 sm:p-2"
+	classes := "relative h-[4.25rem] rounded-lg border border-line sm:h-24"
 	if len(entries) > 0 {
 		classes += " bg-forest-soft/40"
-		classes += " calendar-day group hover:z-20 focus-within:z-20"
 	} else {
-		classes += " bg-white"
+		classes += " bg-white p-1.5 sm:p-2"
 	}
 	if day.Year() == view.Today.Year() && day.Month() == view.Today.Month() && day.Day() == view.Today.Day() {
 		classes += " ring-2 ring-brand ring-inset"
 	}
 	content := []Node{Span(Class("text-sm font-bold tabular-nums text-ink sm:text-base"), Text(strconv.Itoa(day.Day())))}
-	var tooltip Node
 	if len(entries) > 0 {
 		content = append(content, Div(Class("mt-2 flex flex-wrap gap-1"), Map(entries, func(entry services.CalendarEntry) Node {
 			color := "bg-forest"
@@ -141,18 +139,12 @@ func calendarDayEl(day time.Time, view calendarView) Node {
 			}
 			return Span(Attr("aria-hidden", "true"), Class("size-2.5 rounded-full "+color))
 		})))
-		position := "left-0"
-		if day.Weekday() >= time.Thursday {
-			position = "right-0"
-		}
-		tooltip = Div(ID("occupancy-"+key), Attr("role", "tooltip"), Class("calendar-tooltip invisible absolute "+position+" top-full z-30 mt-1 max-h-64 w-64 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-line bg-white p-3 text-left opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"), Map(entries, calendarEntryEl))
 	}
 	if len(entries) > 0 {
 		buttonLabel := fmt.Sprintf("%d de %s: %d ocupaciones", day.Day(), view.MonthName, len(entries))
 		popoverID := "occupancy-popover-" + key
 		return Td(Class(classes),
-			Button(Type("button"), Attr("aria-describedby", "occupancy-"+key), Attr("aria-label", buttonLabel), Attr("aria-controls", popoverID), Attr("aria-haspopup", "dialog"), Attr("popovertarget", popoverID), Class("calendar-day-trigger min-h-8 w-full rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark sm:min-h-10"), Group(content)),
-			tooltip,
+			Button(Type("button"), Attr("aria-label", buttonLabel), Attr("aria-controls", popoverID), Attr("aria-haspopup", "dialog"), Attr("popovertarget", popoverID), Class("absolute inset-0 flex flex-col items-start rounded-lg p-1.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark sm:p-2"), Group(content)),
 			Div(ID(popoverID), Attr("popover", "auto"), Attr("role", "dialog"), Attr("aria-label", buttonLabel), Class("fixed inset-x-4 bottom-4 top-auto m-auto max-h-[70vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-2xl border border-line bg-white p-4 text-left shadow-xl"), Map(entries, calendarEntryEl)),
 		)
 	}

@@ -25,7 +25,7 @@ func renderLayout(t *testing.T, portal string) string {
 
 func TestAdminLayoutUsesAdminNavigationWithoutExploreChrome(t *testing.T) {
 	html := renderLayout(t, PortalAdmin)
-	for _, want := range []string{"Solicitudes", "Calendario", "Cabañas", "Amenidades", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`, `aria-label="Abrir navegación"`, `aria-controls="admin-sidebar"`, `data-controller="admin-navigation"`, `id="admin-sidebar"`} {
+	for _, want := range []string{"Inicio", "Reservas", "Calendario", "Cabañas", "Amenidades", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`, `aria-label="Abrir navegación"`, `aria-controls="admin-sidebar"`, `data-controller="admin-navigation"`, `id="admin-sidebar"`, "sticky top-0 z-30"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("admin layout missing %q", want)
 		}
@@ -39,7 +39,7 @@ func TestAdminLayoutUsesAdminNavigationWithoutExploreChrome(t *testing.T) {
 
 func TestOwnerLayoutUsesOwnerNavigationWithoutExploreChrome(t *testing.T) {
 	html := renderLayout(t, PortalOwner)
-	for _, want := range []string{"Calendario", "Mis cabañas", `aria-label="Cerrar sesión"`, `action="/owner/logout"`} {
+	for _, want := range []string{"Calendario", "Reservas", "Mis cabañas", `aria-label="Cerrar sesión"`, `action="/owner/logout"`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("owner layout missing %q", want)
 		}
@@ -80,5 +80,13 @@ func TestPortalHeaderMarksCurrentPage(t *testing.T) {
 	html := renderNode(t, components.AdminHeader("/admin/calendar"))
 	if !strings.Contains(html, `href="/admin/calendar" aria-current="page"`) {
 		t.Fatal("portal navigation does not mark current page")
+	}
+	html = renderNode(t, components.AdminHeader("/admin/reservations"))
+	if !strings.Contains(html, `href="/admin/reservations" aria-current="page"`) {
+		t.Fatal("reservations navigation does not mark current page")
+	}
+	html = renderNode(t, components.OwnerHeader("/owner/reservations"))
+	if !strings.Contains(html, `href="/owner/reservations" aria-current="page"`) {
+		t.Fatal("owner reservations navigation does not mark current page")
 	}
 }

@@ -32,9 +32,11 @@ func dashboardEl(inquiries []models.Inquiry, commissionBP int, depositCOP int64,
 		if inquiry.Status == models.InquiryPending {
 			pending++
 		}
+		if inquiry.Status == models.InquiryReserved || inquiry.Status == models.InquiryCancelled {
+			commissionPaid += inquiry.CommissionPaidAmount
+		}
 		if inquiry.Status == models.InquiryReserved {
 			reserved++
-			commissionPaid += inquiry.CommissionPaidAmount
 			if inquiry.CommissionBalance > 0 {
 				commissionDue += inquiry.CommissionBalance
 			} else if inquiry.CommissionBalance < 0 {
@@ -43,7 +45,7 @@ func dashboardEl(inquiries []models.Inquiry, commissionBP int, depositCOP int64,
 		}
 	}
 	return Div(ID("dashboard-content"), Class("mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12"),
-		components.PageHeading("Solicitudes y reservas", "Revisa cada consulta y el valor de comisión registrado."),
+		components.PageHeading("Inicio", "Revisa solicitudes, reservas y comisiones."),
 		Div(Class("mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"),
 			components.MetricCard("Solicitudes pendientes", strconv.Itoa(pending), "Por dar seguimiento", "text-brand-dark"),
 			components.MetricCard("Reservas cerradas", strconv.Itoa(reserved), "Reportadas desde el enlace", "text-forest"),
@@ -192,6 +194,9 @@ func inquiryRow(inquiry models.Inquiry) Node {
 		commission = "$" + helpers.FormatCOP(inquiry.Commission)
 	} else if inquiry.Status == models.InquiryLost {
 		status = "No concretada"
+		statusClass = "bg-gray-100 text-muted"
+	} else if inquiry.Status == models.InquiryCancelled {
+		status = "Cancelada"
 		statusClass = "bg-gray-100 text-muted"
 	}
 	dateText := helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)

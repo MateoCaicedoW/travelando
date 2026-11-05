@@ -1,0 +1,62 @@
+package reservations
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+	"strconv"
+
+	"travelando/internal/system/components"
+	"travelando/internal/system/helpers"
+	"travelando/internal/system/services"
+
+	"go.leapkit.dev/core/server"
+	. "maragu.dev/gomponents"
+	"maragu.dev/gomponents/html"
+)
+
+func Cancel(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+	svc := services.ServiceSetFromCtx(r.Context()).Inquiries
+	if svc == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	if err := svc.CancelReservation(id); errors.Is(err, services.ErrNotFound) {
+		http.NotFound(w, r)
+		return
+	} else if errors.Is(err, services.ErrInvalidInput) {
+		http.Error(w, "La solicitud o reserva ya no está activa.", http.StatusConflict)
+		return
+	} else if err != nil {
+		slog.Error("cancelling admin reservation", "inquiry_id", id, "error", err)
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	if helpers.IsHTMX(r) {
+		inquiries, err := svc.Inquiries()
+		if err != nil {
+			slog.Error("reloading admin reservations after cancellation", "inquiry_id", id, "error", err)
+			server.Error(w, err, http.StatusInternalServerError)
+			return
+		}
+		response := Group{
+			reservationsContentEl(reservationEntries(inquiries)),
+			html.Div(html.ID("modal"), Attr("hx-swap-oob", "delete")),
+			html.Div(html.ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Cancelación registrada. Las fechas ya no están bloqueadas.", helpers.FlashSuccess)),
+		}
+		if err := response.Render(w); err != nil {
+			server.Error(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
+	if err := helpers.SetFlash(r, helpers.FlashSuccess, "Cancelación registrada. Las fechas ya no están bloqueadas."); err != nil {
+		http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
+		return
+	}
+	helpers.Redirect(w, r, "/admin/reservations")
+}

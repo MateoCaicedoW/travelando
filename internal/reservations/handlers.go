@@ -11,6 +11,7 @@ import (
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
 
+	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
@@ -53,6 +54,10 @@ func edit(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	if inquiry.Status == models.InquiryCancelled {
+		http.NotFound(w, r)
+		return
+	}
 	render(w, r, *inquiry, ownerID, nil, http.StatusOK)
 }
 
@@ -80,13 +85,26 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	update, fieldErrors := updateFromForm(r)
+	var update models.ReservationUpdate
+	var pendingUpdate models.InquiryUpdate
+	var fieldErrors validate.Errors
+	if inquiry.Status == models.InquiryPending {
+		pendingUpdate, fieldErrors = pendingUpdateFromForm(r)
+	} else {
+		update, fieldErrors = updateFromForm(r)
+	}
 	state := &formState{Values: r.Form, Errors: fieldErrors}
 	if fieldErrors.HasAny() {
 		render(w, r, *inquiry, ownerID, state, http.StatusUnprocessableEntity)
 		return
 	}
-	if ownerID > 0 {
+	if inquiry.Status == models.InquiryPending {
+		if ownerID > 0 {
+			err = set.Inquiries.UpdatePendingInquiryForOwner(ownerID, id, pendingUpdate)
+		} else {
+			err = set.Inquiries.UpdatePendingInquiry(id, pendingUpdate)
+		}
+	} else if ownerID > 0 {
 		err = set.Inquiries.UpdateReservationForOwner(ownerID, id, update)
 	} else {
 		err = set.Inquiries.UpdateReservation(id, update)
@@ -111,11 +129,27 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		return
 	}
 	message := "Reserva actualizada."
-	if ownerID > 0 {
+	if inquiry.Status == models.InquiryPending {
+		message = "Solicitud actualizada. El estimado fue recalculado."
+	} else if ownerID > 0 {
 		message = "Reserva actualizada. El cambio de comisión quedó registrado."
 	}
+	returnTo := ""
+	if r.FormValue("return_to") == "reservations" {
+		returnTo = "/admin/reservations"
+		if ownerID > 0 {
+			returnTo = "/owner/reservations"
+		}
+	}
+	if returnTo != "" {
+		if err := helpers.SetFlash(r, helpers.FlashSuccess, message); err != nil {
+			http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
+			return
+		}
+		helpers.Redirect(w, r, returnTo)
+		return
+	}
 	if helpers.IsHTMX(r) {
-		w.WriteHeader(http.StatusOK)
 		response := Group{
 			Div(ID("modal"), Attr("hx-swap-oob", "delete")),
 			Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast(message, helpers.FlashSuccess)),
@@ -138,22 +172,37 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 
 func loadReservation(svc services.InquiryService, ownerID, id int64) (*models.Inquiry, error) {
 	if ownerID > 0 {
-		return svc.ReservationForOwner(ownerID, id)
+		return svc.InquiryForOwner(ownerID, id)
 	}
-	return svc.Reservation(id)
+	return svc.AdminReservation(id)
 }
 
 func render(w http.ResponseWriter, r *http.Request, inquiry models.Inquiry, ownerID int64, state *formState, status int) {
 	owner := ownerID > 0
+	returnTo := r.URL.Query().Get("return_to")
+	if state != nil && state.Values.Get("return_to") != "" {
+		returnTo = state.Values.Get("return_to")
+	}
+	if returnTo != "reservations" {
+		returnTo = ""
+	}
 	if helpers.IsHTMX(r) && state != nil {
-		w.WriteHeader(status)
-		if err := reservationForm(inquiry, state, owner).Render(w); err != nil {
+		if status != http.StatusOK {
+			w.WriteHeader(status)
+		}
+		if err := reservationForm(inquiry, state, owner, returnTo).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return
 	}
-	w.WriteHeader(status)
-	dialog := components.CustomDialog(components.DialogProps{Label: "Editar reserva", Yield: reservationForm(inquiry, state, owner)})
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
+	label := "Editar reserva"
+	if inquiry.Status == models.InquiryPending {
+		label = "Editar solicitud"
+	}
+	dialog := components.CustomDialog(components.DialogProps{Label: label, Yield: reservationForm(inquiry, state, owner, returnTo)})
 	if err := dialog.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

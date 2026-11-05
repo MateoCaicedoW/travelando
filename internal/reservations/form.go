@@ -44,6 +44,26 @@ func updateFromForm(r *http.Request) (models.ReservationUpdate, validate.Errors)
 	return update, fieldErrors
 }
 
+func pendingUpdateFromForm(r *http.Request) (models.InquiryUpdate, validate.Errors) {
+	stayType := r.FormValue("stay_type")
+	dateFrom := r.FormValue("date_from")
+	fieldErrors := form.Validate(r, validate.Fields(
+		validate.Field("guest_name", validate.Required("Ingresa el nombre del huésped."), validate.MaxLength(120, "Usa máximo 120 caracteres.")),
+		validate.Field("guest_phone", validate.Required("Ingresa el teléfono."), validPhone),
+		validate.Field("guest_email", validate.Required("Ingresa el correo."), validEmail),
+		validate.Field("stay_type", validate.Required("Selecciona el tipo de reserva."), validate.WithinOptions([]string{string(models.StayDayUse), string(models.StayOvernight)}, "Selecciona un tipo válido.")),
+		validate.Field("date_from", validate.Required("Selecciona la fecha de llegada."), validDate("Selecciona una fecha válida.")),
+		validate.Field("date_to", validate.Required("Selecciona la fecha de salida."), validDate("Selecciona una fecha válida."), validDateRange(stayType, dateFrom)),
+		validate.Field("guests", validate.Required("Indica la cantidad de huéspedes."), positiveInteger("Ingresa una cantidad válida.")),
+	))
+	update := models.InquiryUpdate{
+		GuestName: r.FormValue("guest_name"), GuestPhone: r.FormValue("guest_phone"), GuestEmail: r.FormValue("guest_email"),
+		StayType: models.StayType(stayType), DateFrom: dateFrom, DateTo: r.FormValue("date_to"),
+	}
+	update.Guests, _ = strconv.Atoi(r.FormValue("guests"))
+	return update, fieldErrors
+}
+
 func totalAmount(values []string) error {
 	if len(values) == 0 || values[0] == "" {
 		return nil

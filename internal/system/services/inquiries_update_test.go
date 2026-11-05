@@ -181,6 +181,145 @@ func TestOwnerCannotUpdateAnotherOwnersReservation(t *testing.T) {
 	}
 }
 
+func TestReservationsForOwnerScopesConfirmedReservations(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	if _, err := database.Exec(`
+		INSERT INTO owners (name, whatsapp, pin_hash) VALUES ('Dueño uno', '573001234567', ''), ('Dueño dos', '573009876543', '');
+		INSERT INTO cabins (owner_id, name, included_guests, extra_guest_price, day_price, night_price)
+		VALUES (1, 'Cabaña uno', 2, 0, 100000, 200000), (2, 'Cabaña dos', 2, 0, 100000, 200000);
+	`); err != nil {
+		t.Fatal(err)
+	}
+	inquiries := NewInquiryService(conn)
+	create := func(cabinID int64, email, date string, confirm bool) string {
+		t.Helper()
+		request := models.Inquiry{
+			CabinID: cabinID, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: email,
+			StayType: models.StayDayUse, DateFrom: date, DateTo: date, Guests: 2,
+		}
+		token, err := inquiries.CreateInquiry(&request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if confirm {
+			if err := inquiries.ResolveInquiry(token, models.InquiryReserved, 100000); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return token
+	}
+	create(1, "owner-one@example.com", "2099-08-10", true)
+	create(1, "pending@example.com", "2099-08-11", false)
+	create(2, "owner-two@example.com", "2099-08-12", true)
+	cancelledToken := create(1, "cancelled@example.com", "2099-08-13", true)
+	cancelledInquiry, err := inquiries.InquiryByToken(cancelledToken)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := inquiries.CancelReservation(cancelledInquiry.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	ownerOne, err := inquiries.ReservationsForOwner(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ownerOne) != 3 || ownerOne[0].CabinID != 1 || ownerOne[0].Status != models.InquiryCancelled || ownerOne[1].CabinID != 1 || ownerOne[1].Status != models.InquiryPending || ownerOne[2].CabinID != 1 || ownerOne[2].Status != models.InquiryReserved {
+		t.Fatalf("owner one reservations = %+v, want cancelled, pending, and confirmed records for cabin one", ownerOne)
+	}
+	ownerTwo, err := inquiries.ReservationsForOwner(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ownerTwo) != 1 || ownerTwo[0].CabinID != 2 {
+		t.Fatalf("owner two reservations = %+v, want only cabin two reservation", ownerTwo)
+	}
+}
+
+func TestOwnerCanCancelOnlyTheirOwnReservation(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	if _, err := database.Exec(`
+		INSERT INTO owners (name, whatsapp, pin_hash) VALUES ('Dueño uno', '573001234567', ''), ('Dueño dos', '573009876543', '');
+		INSERT INTO cabins (owner_id, name, included_guests, extra_guest_price, day_price, night_price)
+		VALUES (1, 'Cabaña uno', 2, 0, 100000, 200000), (2, 'Cabaña dos', 2, 0, 100000, 200000);
+		UPDATE commission_settings SET commission_bps = 1000 WHERE id = 1;
+	`); err != nil {
+		t.Fatal(err)
+	}
+	inquiries := NewInquiryService(conn)
+	token, err := inquiries.CreateInquiry(&models.Inquiry{
+		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		StayType: models.StayDayUse, DateFrom: "2099-10-10", DateTo: "2099-10-10", Guests: 2,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := inquiries.ResolveInquiry(token, models.InquiryReserved, 100000); err != nil {
+		t.Fatal(err)
+	}
+	reservation, err := inquiries.InquiryByToken(token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := inquiries.CancelReservationForOwner(2, reservation.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("other owner cancellation error = %v, want ErrNotFound", err)
+	}
+	if err := inquiries.CancelReservationForOwner(1, reservation.ID); err != nil {
+		t.Fatal(err)
+	}
+	cancelled, err := inquiries.InquiryForOwner(1, reservation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cancelled.Status != models.InquiryCancelled || cancelled.CancelledFromStatus != models.InquiryReserved || len(cancelled.CommissionAdjustments) != 1 || cancelled.CommissionAdjustments[0].ActorRole != "owner" {
+		t.Fatalf("owner-cancelled reservation = %+v, want cancelled history with owner commission adjustment", cancelled)
+	}
+}
+
+func TestOwnerCanUpdateOnlyTheirOwnPendingInquiry(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	if _, err := database.Exec(`
+		INSERT INTO owners (name, whatsapp, pin_hash) VALUES ('Dueño uno', '573001234567', ''), ('Dueño dos', '573009876543', '');
+		INSERT INTO cabins (owner_id, name, included_guests, extra_guest_price, day_price, night_price)
+		VALUES (1, 'Cabaña uno', 2, 15000, 100000, 200000), (2, 'Cabaña dos', 2, 0, 100000, 200000);
+	`); err != nil {
+		t.Fatal(err)
+	}
+	inquiries := NewInquiryService(conn)
+	request := models.Inquiry{
+		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		StayType: models.StayDayUse, DateFrom: "2099-09-10", DateTo: "2099-09-10", Guests: 2,
+	}
+	token, err := inquiries.CreateInquiry(&request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inquiry, err := inquiries.InquiryByToken(token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	update := models.InquiryUpdate{
+		GuestName: "Huésped editado", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		StayType: models.StayDayUse, DateFrom: "2099-09-10", DateTo: "2099-09-10", Guests: 3,
+	}
+	if err := inquiries.UpdatePendingInquiryForOwner(2, inquiry.ID, update); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("other owner pending edit error = %v, want ErrNotFound", err)
+	}
+	if err := inquiries.UpdatePendingInquiryForOwner(1, inquiry.ID, update); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := inquiries.InquiryForOwner(1, inquiry.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Status != models.InquiryPending || updated.GuestName != "Huésped editado" || updated.Estimated != 115000 {
+		t.Fatalf("updated owner pending inquiry = %+v, want pending and estimated total 115000", updated)
+	}
+}
+
 func TestUpdateReservationRejectsOverlappingDates(t *testing.T) {
 	database, conn := cabinTestDatabase(t)
 	defer database.Close()

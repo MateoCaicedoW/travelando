@@ -12,6 +12,7 @@ import (
 	admincalendar "travelando/internal/admin/calendar"
 	admindashboard "travelando/internal/admin/dashboard"
 	adminowners "travelando/internal/admin/owners"
+	adminreservations "travelando/internal/admin/reservations"
 	"travelando/internal/home"
 	"travelando/internal/ownerportal"
 	"travelando/internal/requests"
@@ -81,6 +82,9 @@ func New() (http.Handler, string) {
 		rg.Use(adminauth.RequireAuth)
 		rg.HandleFunc("GET /{$}", admindashboard.Index)
 		rg.HandleFunc("GET /inventory", admindashboard.Inventory)
+		rg.HandleFunc("GET /reservations", adminreservations.Index)
+		rg.HandleFunc("GET /reservations/{id}", adminreservations.Show)
+		rg.HandleFunc("POST /reservations/{id}/cancel", adminreservations.Cancel)
 		rg.HandleFunc("POST /commission", admindashboard.UpdateCommission)
 		rg.HandleFunc("POST /deposit", admindashboard.UpdateDeposit)
 		rg.HandleFunc("POST /inquiries/{id}/commission-paid", admindashboard.MarkCommissionPaid)
@@ -110,6 +114,9 @@ func New() (http.Handler, string) {
 	r.Group("/owner", func(rg server.Router) {
 		rg.Use(ownerportal.RequireAuth)
 		rg.HandleFunc("GET /{$}", ownerportal.Index)
+		rg.HandleFunc("GET /reservations", ownerportal.Reservations)
+		rg.HandleFunc("GET /reservations/{id}", ownerportal.ReservationDetails)
+		rg.HandleFunc("POST /reservations/{id}/cancel", ownerportal.CancelReservation)
 		rg.HandleFunc("GET /cabins", ownerportal.Cabins)
 		rg.HandleFunc("GET /cabins/new", ownerportal.NewCabin)
 		rg.HandleFunc("POST /cabins", ownerportal.CreateCabin)

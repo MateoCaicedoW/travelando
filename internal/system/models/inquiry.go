@@ -10,9 +10,10 @@ const (
 type InquiryStatus string
 
 const (
-	InquiryPending  InquiryStatus = "pending"
-	InquiryReserved InquiryStatus = "reserved"
-	InquiryLost     InquiryStatus = "lost"
+	InquiryPending   InquiryStatus = "pending"
+	InquiryReserved  InquiryStatus = "reserved"
+	InquiryLost      InquiryStatus = "lost"
+	InquiryCancelled InquiryStatus = "cancelled"
 )
 
 type Inquiry struct {
@@ -42,6 +43,7 @@ type Inquiry struct {
 	CommissionBalance     int64
 	CommissionAdjustments []CommissionAdjustment
 	CreatedAt             string
+	CancelledFromStatus   InquiryStatus
 }
 
 type CommissionAdjustment struct {
@@ -62,4 +64,14 @@ type ReservationUpdate struct {
 	Guests        int
 	FinalTotal    int64
 	UseFinalTotal bool
+}
+
+type InquiryUpdate struct {
+	GuestName  string
+	GuestPhone string
+	GuestEmail string
+	StayType   StayType
+	DateFrom   string
+	DateTo     string
+	Guests     int
 }

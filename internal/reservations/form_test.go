@@ -29,6 +29,25 @@ func TestUpdateFromFormParsesManualTotalAndDayUse(t *testing.T) {
 	}
 }
 
+func TestPendingUpdateFromFormDoesNotRequireFinalTotal(t *testing.T) {
+	values := url.Values{
+		"guest_name": {"Huésped"}, "guest_phone": {"573001234567"}, "guest_email": {"guest@example.com"},
+		"stay_type": {string(models.StayOvernight)}, "date_from": {"2027-02-10"}, "date_to": {"2027-02-12"}, "guests": {"3"},
+	}
+	r := httptest.NewRequest("POST", "/", strings.NewReader(values.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if err := r.ParseForm(); err != nil {
+		t.Fatal(err)
+	}
+	update, fieldErrors := pendingUpdateFromForm(r)
+	if fieldErrors.HasAny() {
+		t.Fatalf("pending update form errors: %v", fieldErrors)
+	}
+	if update.GuestName != "Huésped" || update.StayType != models.StayOvernight || update.DateFrom != "2027-02-10" || update.DateTo != "2027-02-12" || update.Guests != 3 {
+		t.Fatalf("pending update = %+v, want all request fields", update)
+	}
+}
+
 func TestReservationFormShowsGuestContactAndCommissionHistory(t *testing.T) {
 	inquiry := models.Inquiry{
 		ID: 42, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
@@ -37,7 +56,7 @@ func TestReservationFormShowsGuestContactAndCommissionHistory(t *testing.T) {
 		CommissionAdjustments: []models.CommissionAdjustment{{PreviousAmount: 8000, NewAmount: 10000, Amount: 2000, ActorRole: "owner", CreatedAt: "2026-11-05 12:00:00"}},
 	}
 	var html strings.Builder
-	if err := reservationForm(inquiry, nil, true).Render(&html); err != nil {
+	if err := reservationForm(inquiry, nil, true, "").Render(&html); err != nil {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{"guest@example.com", "573001234567", "Ajustes de comisión", "Dueño", "/owner/reservations/42", "modal#close"} {
@@ -47,10 +66,21 @@ func TestReservationFormShowsGuestContactAndCommissionHistory(t *testing.T) {
 	}
 }
 
+func TestPendingInquiryFormRecalculatesEstimateInsteadOfEditingFinalTotal(t *testing.T) {
+	inquiry := models.Inquiry{ID: 19, Status: models.InquiryPending, Estimated: 125000, StayType: models.StayDayUse, DateFrom: "2027-02-10", DateTo: "2027-02-11"}
+	var html strings.Builder
+	if err := reservationForm(inquiry, nil, false, "reservations").Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html.String(), "Editar solicitud") || !strings.Contains(html.String(), "125.000") || !strings.Contains(html.String(), "recalcularemos el estimado") || strings.Contains(html.String(), `name="final_total"`) {
+		t.Fatalf("pending inquiry form does not show recalculated estimate workflow: %s", html.String())
+	}
+}
+
 func TestReservationEditAlwaysRendersModal(t *testing.T) {
 	inquiry := models.Inquiry{ID: 7, StayType: models.StayDayUse, DateFrom: "2027-02-10", DateTo: "2027-02-11"}
 	for _, htmx := range []bool{false, true} {
-		r := httptest.NewRequest("GET", "/", nil)
+		r := httptest.NewRequest("GET", "/?return_to=reservations", nil)
 		if htmx {
 			r.Header.Set("HX-Request", "true")
 		}
@@ -59,6 +89,36 @@ func TestReservationEditAlwaysRendersModal(t *testing.T) {
 		if !strings.Contains(response.Body.String(), `id="modal"`) || strings.Contains(response.Body.String(), "<!DOCTYPE html>") {
 			t.Fatalf("htmx=%t rendered non-modal edit response: %s", htmx, response.Body.String())
 		}
+		if !strings.Contains(response.Body.String(), `name="return_to" value="reservations"`) {
+			t.Fatalf("htmx=%t edit form did not preserve its return destination", htmx)
+		}
+	}
+}
+
+func TestOwnerReservationEditPreservesReservationsListDestination(t *testing.T) {
+	r := httptest.NewRequest("GET", "/?return_to=reservations", nil)
+	response := httptest.NewRecorder()
+	render(response, r, models.Inquiry{ID: 12, Status: models.InquiryReserved}, 1, nil, 200)
+	if !strings.Contains(response.Body.String(), `name="return_to" value="reservations"`) {
+		t.Fatalf("owner edit modal does not preserve reservations list destination: %s", response.Body.String())
+	}
+}
+
+func TestOwnerReservationDetailsUseScopedActionsAndHideActionsWhenCancelled(t *testing.T) {
+	var active, cancelled strings.Builder
+	if err := OwnerReservationDetailsEl(models.Inquiry{ID: 42, Status: models.InquiryReserved}).Render(&active); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`href="/owner/reservations/42/edit?return_to=reservations"`, `action="/owner/reservations/42/cancel"`, `hx-target="#owner-reservations-content"`} {
+		if !strings.Contains(active.String(), want) {
+			t.Errorf("owner reservation details missing %q", want)
+		}
+	}
+	if err := OwnerReservationDetailsEl(models.Inquiry{ID: 43, Status: models.InquiryCancelled}).Render(&cancelled); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(cancelled.String(), "/edit") || strings.Contains(cancelled.String(), "/cancel") {
+		t.Fatalf("cancelled reservation details expose edit/cancel actions: %s", cancelled.String())
 	}
 }
 
