@@ -14,6 +14,7 @@ import (
 	"travelando/internal/home"
 	"travelando/internal/ownerportal"
 	"travelando/internal/requests"
+	"travelando/internal/reservations"
 	"travelando/internal/system/assets"
 	"travelando/internal/system/services"
 
@@ -81,6 +82,8 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("GET /inventory", admindashboard.Inventory)
 		rg.HandleFunc("POST /commission", admindashboard.UpdateCommission)
 		rg.HandleFunc("POST /inquiries/{id}/commission-paid", admindashboard.MarkCommissionPaid)
+		rg.HandleFunc("GET /inquiries/{id}/edit", reservations.EditAdmin)
+		rg.HandleFunc("POST /inquiries/{id}", reservations.UpdateAdmin)
 		rg.HandleFunc("POST /logout", adminauth.Logout)
 		rg.HandleFunc("GET /calendar", admincalendar.Index)
 		rg.HandleFunc("GET /cabins", admincabins.Index)
@@ -108,6 +111,8 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("GET /blocks/new", ownerportal.NewBlock)
 		rg.HandleFunc("POST /blocks", ownerportal.AddBlock)
 		rg.HandleFunc("POST /blocks/{blockID}/delete", ownerportal.DeleteBlock)
+		rg.HandleFunc("GET /reservations/{id}/edit", ownerportal.EditReservation)
+		rg.HandleFunc("POST /reservations/{id}", ownerportal.UpdateReservation)
 		rg.HandleFunc("POST /logout", ownerportal.Logout)
 	})
 	r.Handle("GET /assets/{path...}", assets.NewAssetHandler(assets.Files, "/assets/"))

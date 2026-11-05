@@ -22,7 +22,7 @@ func ownerCalendarPageEl(view ownerCalendarView, r *http.Request) Node {
 func ownerCalendarContentEl(view ownerCalendarView) Node {
 	return Div(ID("owner-content"), Class("mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12"),
 		Div(Class("flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"),
-			components.PageHeading("Calendario de mis cabañas", "Registra reservas externas para mantener las fechas actualizadas."),
+			components.PageHeading("Calendario de mis cabañas", "Consulta los datos de tus huéspedes, edita reservas y registra reservas externas."),
 			If(len(view.Cabins) > 0, A(Href(ownerBlockModalURL(view.Month, view.Year)), Attr("hx-get", ownerBlockModalURL(view.Month, view.Year)), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Class("inline-flex min-h-10 items-center rounded-lg bg-brand-dark px-4 py-2 text-sm font-extrabold text-white hover:brightness-90"), Text("Registrar reserva externa"))),
 		),
 		ownerCalendarEl(view),
@@ -88,9 +88,17 @@ func ownerCalendarEntryEl(entry services.CalendarEntry, dayKey string, view owne
 			color, label = "bg-brand-dark", "Externa"
 		}
 	}
+	entryText := entry.CabinName + " · " + label + ownerEntrySchedule(entry)
+	if !entry.IsBlock {
+		entryText += " · " + entry.GuestName
+	}
 	content := []Node{
 		Span(Attr("aria-hidden", "true"), Class("size-2 shrink-0 rounded-full "+color)),
-		Span(Attr("title", entry.CabinName+" · "+ownerEntryLabel(entry)+ownerEntrySchedule(entry)), Attr("aria-label", entry.CabinName+" · "+ownerEntryLabel(entry)+ownerEntrySchedule(entry)), Class("min-w-0 flex-1 truncate text-[0.6rem] font-semibold text-ink sm:text-xs"), Text(entry.CabinName+" · "+label+ownerEntrySchedule(entry))),
+		Span(Attr("title", entryText+ownerGuestContact(entry)), Attr("aria-label", entryText+ownerGuestContact(entry)), Class("min-w-0 flex-1 truncate text-[0.6rem] font-semibold text-ink sm:text-xs"), Text(entryText)),
+	}
+	if !entry.IsBlock {
+		editURL := "/owner/reservations/" + strconv.FormatInt(entry.InquiryID, 10) + "/edit"
+		content[1] = A(Href(editURL), Attr("hx-get", editURL), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Attr("title", entryText+ownerGuestContact(entry)), Attr("aria-label", "Editar reserva: "+entryText+ownerGuestContact(entry)), Class("min-w-0 flex-1 truncate text-[0.6rem] font-semibold text-ink hover:text-brand-dark hover:underline sm:text-xs"), Text(entryText))
 	}
 	if entry.IsBlock && entry.BlockSource == "external" && entry.DateFrom == dayKey {
 		deleteAction := "/owner/blocks/" + strconv.FormatInt(entry.BlockID, 10) + "/delete?month=" + strconv.Itoa(int(view.Month)) + "&year=" + strconv.Itoa(view.Year)
@@ -101,6 +109,13 @@ func ownerCalendarEntryEl(entry services.CalendarEntry, dayKey string, view owne
 		))
 	}
 	return Div(Class("flex items-center gap-1 overflow-hidden"), Group(content))
+}
+
+func ownerGuestContact(entry services.CalendarEntry) string {
+	if entry.IsBlock {
+		return ""
+	}
+	return " · " + entry.GuestPhone + " · " + entry.GuestEmail
 }
 
 func ownerExternalBlockForm(cabins []models.Cabin, state *blockFormState, month time.Month, year int) Node {
@@ -118,7 +133,7 @@ func ownerExternalBlockForm(cabins []models.Cabin, state *blockFormState, month 
 		cabinOptions[i] = components.SearchableOption{Value: strconv.FormatInt(cabin.ID, 10), Label: cabin.Name}
 	}
 	formAction := "/owner/blocks?month=" + strconv.Itoa(int(month)) + "&year=" + strconv.Itoa(year)
-	return Div(Class("mx-auto w-full max-w-4xl p-4 sm:p-7"),
+	return Div(Class("w-full p-4 sm:p-7"),
 		Div(Class("flex items-start justify-between gap-4"),
 			components.PageHeading("Registrar reserva externa", "Incluye reservas hechas por otros medios o para familiares. No se cobra comisión."),
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
@@ -151,16 +166,6 @@ func ownerBlockModalURL(month time.Month, year int) string {
 
 func ownerLegend(color, label string) Node {
 	return Span(Class("inline-flex items-center gap-2"), Span(Attr("aria-hidden", "true"), Class("size-2.5 rounded-full "+color)), Text(label))
-}
-
-func ownerEntryLabel(entry services.CalendarEntry) string {
-	if !entry.IsBlock {
-		return "Reserva de Travelando"
-	}
-	if entry.BlockSource == "external" {
-		return "Reserva externa"
-	}
-	return "Bloqueo de Travelando"
 }
 
 func ownerEntrySchedule(entry services.CalendarEntry) string {

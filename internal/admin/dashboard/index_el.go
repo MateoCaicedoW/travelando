@@ -21,27 +21,29 @@ func dashboardEl(inquiries []models.Inquiry, commissionBP int, commissionState *
 		commissionError = commissionState.Error
 	}
 	pending, reserved := 0, 0
-	commissionPaid, commissionDue := int64(0), int64(0)
+	commissionPaid, commissionDue, commissionCredit := int64(0), int64(0), int64(0)
 	for _, inquiry := range inquiries {
 		if inquiry.Status == models.InquiryPending {
 			pending++
 		}
 		if inquiry.Status == models.InquiryReserved {
 			reserved++
-			if inquiry.CommissionPaidAt != "" {
-				commissionPaid += inquiry.Commission
-			} else {
-				commissionDue += inquiry.Commission
+			commissionPaid += inquiry.CommissionPaidAmount
+			if inquiry.CommissionBalance > 0 {
+				commissionDue += inquiry.CommissionBalance
+			} else if inquiry.CommissionBalance < 0 {
+				commissionCredit -= inquiry.CommissionBalance
 			}
 		}
 	}
 	return Div(ID("dashboard-content"), Class("mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12"),
 		components.PageHeading("Solicitudes y reservas", "Revisa cada consulta y el valor de comisión registrado."),
-		Div(Class("mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"),
+		Div(Class("mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"),
 			components.MetricCard("Solicitudes pendientes", strconv.Itoa(pending), "Por dar seguimiento", "text-brand-dark"),
 			components.MetricCard("Reservas cerradas", strconv.Itoa(reserved), "Reportadas desde el enlace", "text-forest"),
 			components.MetricCard("Comisión cobrada", "$"+helpers.FormatCOP(commissionPaid)+" COP", "Pagada por los dueños", "text-forest"),
 			components.MetricCard("Comisión pendiente", "$"+helpers.FormatCOP(commissionDue)+" COP", "Por cobrar a los dueños", "text-brand-dark"),
+			components.MetricCard("Saldo a favor", "$"+helpers.FormatCOP(commissionCredit)+" COP", "Ajustes después de pagos", "text-forest"),
 		),
 		Div(Class("overflow-hidden rounded-2xl border border-line bg-white"),
 			Div(Class("flex flex-wrap items-end justify-between gap-3 border-b border-line p-5 sm:px-6"),
@@ -137,7 +139,7 @@ func inventoryEl(page services.CabinPageResult) Node {
 				ownerPhone = "WhatsApp " + c.OwnerWhatsApp + " · "
 			}
 			editURL := "/admin/cabins/" + strconv.FormatInt(c.ID, 10) + "/edit"
-			return A(Href(editURL), Attr("aria-label", "Editar "+c.Name), Class("group -mx-2 flex items-center justify-between gap-3 border-b border-line px-2 py-3 last:border-0 hover:bg-cream/50 focus-visible:rounded-lg"),
+			return A(Href(editURL), Attr("hx-get", editURL), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Attr("aria-label", "Editar "+c.Name), Class("group -mx-2 flex items-center justify-between gap-3 border-b border-line px-2 py-3 last:border-0 hover:bg-cream/50 focus-visible:rounded-lg"),
 				Div(Class("min-w-0 flex-1"),
 					Div(Class("flex flex-wrap items-center gap-x-2 gap-y-1"),
 						P(Class("font-bold text-ink group-hover:text-brand-dark"), Text(c.Name)),
@@ -178,18 +180,27 @@ func inquiryRow(inquiry models.Inquiry) Node {
 		statusClass = "bg-gray-100 text-muted"
 	}
 	dateText := helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)
+	balanceLabel := "Al día"
+	if inquiry.CommissionBalance > 0 {
+		balanceLabel = "Pendiente $" + helpers.FormatCOP(inquiry.CommissionBalance)
+	} else if inquiry.CommissionBalance < 0 {
+		balanceLabel = "A favor $" + helpers.FormatCOP(-inquiry.CommissionBalance)
+	}
 	return Tr(ID("inquiry-row-"+strconv.FormatInt(inquiry.ID, 10)),
 		Td(Class("px-5 py-4 align-top"), P(Class("font-bold text-ink"), Text(inquiry.GuestName)), P(Class("mt-1 text-xs text-muted"), Text(inquiry.GuestPhone))),
 		Td(Class("px-5 py-4 align-top"), P(Class("font-bold text-ink"), Text(inquiry.CabinName)), P(Class("mt-1 text-xs text-muted"), Text(inquiry.OwnerName))),
 		Td(Class("px-5 py-4 align-top text-muted"), P(Text(dateText)), P(Class("mt-1 text-xs"), Text(helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime))), P(Class("mt-1 text-xs"), Text(helpers.StayTypeLabel(inquiry.StayType)+" · "+strconv.Itoa(inquiry.Guests)+" huéspedes"))),
-		Td(Class("px-5 py-4 align-top"), Span(Class("inline-flex rounded-full px-2.5 py-1 text-xs font-bold "+statusClass), Text(status))),
+		Td(Class("px-5 py-4 align-top"),
+			Span(Class("inline-flex rounded-full px-2.5 py-1 text-xs font-bold "+statusClass), Text(status)),
+			If(inquiry.Status == models.InquiryReserved, A(Href("/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/edit"), Attr("hx-get", "/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/edit"), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Class("mt-2 block text-xs font-bold text-brand-dark hover:underline"), Text("Editar reserva"))),
+		),
 		Td(Class("px-5 py-4 text-right align-top font-extrabold text-ink"),
 			P(Text(commission)),
 			If(inquiry.Status == models.InquiryReserved, P(Class("mt-1 text-xs font-normal text-muted"), Text("sobre $"+helpers.FormatCOP(inquiry.FinalTotal)))),
-			If(inquiry.Status == models.InquiryReserved && inquiry.CommissionPaidAt != "", P(Class("mt-1 text-xs font-bold text-forest"), Text("Pagada"))),
-			If(inquiry.Status == models.InquiryReserved && inquiry.CommissionPaidAt == "" && inquiry.Commission > 0,
-				Form(Method("post"), Action("/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/commission-paid"), Attr("hx-post", "/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/commission-paid"), Attr("hx-target", "#dashboard-content"), Attr("hx-swap", "outerHTML"), Attr("hx-confirm", "¿Marcar comisión completa como pagada?"), Class("mt-2"),
-					Button(Type("submit"), Class("text-xs font-bold text-brand-dark hover:underline"), Text("Marcar pagada")),
+			If(inquiry.Status == models.InquiryReserved, P(Class("mt-1 text-xs font-bold"), Text(balanceLabel))),
+			If(inquiry.Status == models.InquiryReserved && inquiry.CommissionBalance > 0,
+				Form(Method("post"), Action("/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/commission-paid"), Attr("hx-post", "/admin/inquiries/"+strconv.FormatInt(inquiry.ID, 10)+"/commission-paid"), Attr("hx-target", "#dashboard-content"), Attr("hx-swap", "outerHTML"), Attr("hx-confirm", "¿Registrar el pago del saldo pendiente?"), Class("mt-2"),
+					Button(Type("submit"), Class("text-xs font-bold text-brand-dark hover:underline"), Text("Marcar saldo pagado")),
 				),
 			),
 		),

@@ -76,5 +76,5 @@ func renderBlockErrors(w http.ResponseWriter, r *http.Request, id int64, fieldEr
 		return
 	}
 	state := &cabinFormState{BlockErrors: fieldErrors, BlockValues: r.Form}
-	renderCabinEditPage(w, r, data, state, http.StatusUnprocessableEntity)
+	renderCabinEditContent(w, r, data, state, http.StatusUnprocessableEntity)
 }

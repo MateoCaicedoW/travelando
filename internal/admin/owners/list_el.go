@@ -21,7 +21,7 @@ func ownersEl(owners []models.Owner, editID int64, editState *ownerFormState) No
 		Section(Class("mt-2 overflow-hidden rounded-2xl border border-line bg-white"),
 			Div(Class("border-b border-line p-5 sm:px-6"), H2(Class("text-lg font-extrabold text-ink"), Text("Dueños registrados"))),
 			Div(Class("overflow-x-auto"),
-				Table(Class("w-full min-w-[900px] text-left text-sm"),
+				Table(Class("w-full min-w-[1020px] text-left text-sm"),
 					THead(Class("bg-cream/70 text-xs uppercase tracking-wider text-muted"), Tr(
 						Th(Scope("col"), Class("px-5 py-3 font-bold"), Text("Dueño")),
 						Th(Scope("col"), Class("px-5 py-3 font-bold"), Text("Cédula")),
@@ -29,11 +29,12 @@ func ownersEl(owners []models.Owner, editID int64, editState *ownerFormState) No
 						Th(Scope("col"), Class("px-5 py-3 text-right font-bold"), Text("Cabañas")),
 						Th(Scope("col"), Class("px-5 py-3 text-right font-bold"), Text("Comisión pagada")),
 						Th(Scope("col"), Class("px-5 py-3 text-right font-bold"), Text("Pendiente")),
+						Th(Scope("col"), Class("px-5 py-3 text-right font-bold"), Text("Saldo a favor")),
 						Th(Scope("col"), Class("px-5 py-3 font-bold"), Text("Estado")),
 						Th(Scope("col"), Class("px-5 py-3 text-right font-bold"), Text("Acciones")),
 					)),
 					TBody(ID("owner-table-body"), Class("divide-y divide-line"),
-						If(len(owners) == 0, Tr(Td(Attr("colspan", "8"), Class("px-5 py-12 text-center text-sm text-muted"), Text("Todavía no hay dueños registrados.")))),
+						If(len(owners) == 0, Tr(Td(Attr("colspan", "9"), Class("px-5 py-12 text-center text-sm text-muted"), Text("Todavía no hay dueños registrados.")))),
 						Map(owners, func(owner models.Owner) Node {
 							if owner.ID == editID {
 								return ownerEditRowEl(owner, editState)
@@ -63,7 +64,7 @@ func ownerCreateDialogEl(state *ownerFormState, oob bool) Node {
 	if oob {
 		oobMode = "outerHTML"
 	}
-	return components.CustomDialog(components.DialogProps{Label: "Agregar dueño", SwapOOB: oobMode, Yield: Div(Class("mx-auto w-full max-w-5xl p-4 sm:p-7"),
+	return components.CustomDialog(components.DialogProps{Label: "Agregar dueño", SwapOOB: oobMode, Yield: Div(Class("w-full p-4 sm:p-7"),
 		Div(Class("flex items-start justify-between gap-4"),
 			components.PageHeading("Agregar dueño", "Registra sus datos para asignarle cabañas."),
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
@@ -85,6 +86,7 @@ func ownerRowEl(owner models.Owner) Node {
 		Td(Class("px-5 py-4 text-right align-top font-bold text-ink"), Text(strconv.Itoa(owner.CabinCount))),
 		Td(Class("px-5 py-4 text-right align-top font-bold text-ink"), Text("$"+helpers.FormatCOP(owner.CommissionPaid))),
 		Td(Class("px-5 py-4 text-right align-top font-bold text-ink"), Text("$"+helpers.FormatCOP(owner.CommissionDue))),
+		Td(Class("px-5 py-4 text-right align-top font-bold text-forest"), Text("$"+helpers.FormatCOP(owner.CommissionCredit))),
 		Td(Class("px-5 py-4 align-top"), ownerStatusEl(owner.Active)),
 		Td(Class("px-5 py-4 text-right align-top"),
 			Div(Class("inline-flex items-center gap-2"),
@@ -96,7 +98,7 @@ func ownerRowEl(owner models.Owner) Node {
 }
 
 func ownerEditRowEl(owner models.Owner, state *ownerFormState) Node {
-	return Tr(ID(ownerRowID(owner.ID)), Td(Attr("colspan", "8"),
+	return Tr(ID(ownerRowID(owner.ID)), Td(Attr("colspan", "9"),
 		Form(Method("post"), Action("/admin/owners/"+strconv.FormatInt(owner.ID, 10)), Attr("hx-post", "/admin/owners/"+strconv.FormatInt(owner.ID, 10)), Attr("hx-target", "#owners-content"), Attr("hx-swap", "outerHTML"), Attr("autocomplete", "off"), Class("grid gap-4 bg-cream/30 p-5 sm:grid-cols-2 lg:grid-cols-4"),
 			ownerNameInput(owner, state, false),
 			ownerCedulaInput(owner, state, false),

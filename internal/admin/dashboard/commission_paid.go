@@ -32,7 +32,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, services.ErrInvalidInput) {
-			http.Error(w, "Esta comisión no se puede marcar como pagada.", http.StatusConflict)
+			http.Error(w, "Esta reserva no tiene saldo pendiente de comisión.", http.StatusConflict)
 			return
 		}
 		slog.Error("marking reservation commission as paid", "inquiry_id", id, "error", err)
@@ -46,7 +46,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !helpers.IsHTMX(r) {
-		if err := helpers.SetFlash(r, helpers.FlashSuccess, "Comisión marcada como pagada."); err != nil {
+		if err := helpers.SetFlash(r, helpers.FlashSuccess, "Saldo de comisión marcado como pagado."); err != nil {
 			http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 			return
 		}
@@ -56,7 +56,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	response := Group{
 		dashboardEl(data.Inquiries, data.CommissionBP, nil, requestedCabinPage(r)),
-		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Comisión marcada como pagada.", helpers.FlashSuccess)),
+		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Saldo de comisión marcado como pagado.", helpers.FlashSuccess)),
 	}
 	if err := response.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)

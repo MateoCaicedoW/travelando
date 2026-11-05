@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"travelando/internal/system"
+	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
@@ -70,11 +71,24 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	form := saveErrorEl(cabin, blocks, bookings, owners, state)
-	if helpers.IsHTMX(r) && cabin.ID > 0 {
+	form := newEl(cabin, owners, state)
+	if cabin.ID > 0 {
 		form = editModalEl(cabin, blocks, bookings, owners, state)
 	}
 	w.WriteHeader(status)
+	if cabin.ID > 0 {
+		if helpers.IsHTMX(r) {
+			if err := form.Render(w); err != nil {
+				server.Error(w, err, http.StatusInternalServerError)
+			}
+			return
+		}
+		dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: form})
+		if err := dialog.Render(w); err != nil {
+			server.Error(w, err, http.StatusInternalServerError)
+		}
+		return
+	}
 	if helpers.IsHTMX(r) {
 		if err := form.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)

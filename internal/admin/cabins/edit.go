@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"travelando/internal/system"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
@@ -33,11 +32,7 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
-		renderCabinEditDialog(w, data, nil, http.StatusOK)
-		return
-	}
-	renderCabinEditPage(w, r, data, nil, http.StatusOK)
+	renderCabinEditDialog(w, data, nil, http.StatusOK)
 }
 
 func renderCabinEditDialog(w http.ResponseWriter, data cabinEditData, state *cabinFormState, status int) {
@@ -61,10 +56,10 @@ func refreshCabinEdit(w http.ResponseWriter, r *http.Request, id int64) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	renderCabinEditPage(w, r, data, nil, http.StatusOK)
+	renderCabinEditContent(w, r, data, nil, http.StatusOK)
 }
 
-func renderCabinEditPage(w http.ResponseWriter, r *http.Request, data cabinEditData, state *cabinFormState, status int) {
+func renderCabinEditContent(w http.ResponseWriter, r *http.Request, data cabinEditData, state *cabinFormState, status int) {
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
@@ -74,8 +69,5 @@ func renderCabinEditPage(w http.ResponseWriter, r *http.Request, data cabinEditD
 		}
 		return
 	}
-	page := system.Layout{Title: "Editar " + data.Cabin.Name + " | Travelando", Portal: system.PortalAdmin, Yield: editEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state)}.New(r)
-	if err := page.Render(w); err != nil {
-		server.Error(w, err, http.StatusInternalServerError)
-	}
+	renderCabinEditDialog(w, data, state, http.StatusOK)
 }

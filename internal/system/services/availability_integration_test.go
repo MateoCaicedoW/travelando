@@ -130,8 +130,8 @@ func TestAvailabilityAndConfirmationRespectCleaningWindow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ownerCalendar.Entries) != 1 || ownerCalendar.Entries[0].GuestName != "" {
-		t.Fatalf("owner calendar should show cleanup interval without guest details, got %+v", ownerCalendar.Entries)
+	if len(ownerCalendar.Entries) != 1 || ownerCalendar.Entries[0].GuestName != "Huésped fin de mes" || ownerCalendar.Entries[0].GuestPhone != "573001234567" || ownerCalendar.Entries[0].GuestEmail != "mes@example.com" {
+		t.Fatalf("owner calendar should show reservation guest details, got %+v", ownerCalendar.Entries)
 	}
 }
 

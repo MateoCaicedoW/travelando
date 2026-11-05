@@ -42,8 +42,9 @@ func (s *ownerService) Owners() ([]models.Owner, error) {
 	}
 	rows, err := db.Query(`
 		SELECT o.id, o.name, o.cedula, o.whatsapp, COUNT(DISTINCT c.id),
-			COALESCE(SUM(CASE WHEN i.commission_paid_at IS NOT NULL THEN i.commission_due ELSE 0 END), 0),
-			COALESCE(SUM(CASE WHEN i.commission_paid_at IS NULL THEN i.commission_due ELSE 0 END), 0),
+			COALESCE(SUM(i.commission_paid_amount), 0),
+			COALESCE(SUM(MAX(COALESCE(i.commission_due, 0) - i.commission_paid_amount, 0)), 0),
+			COALESCE(SUM(MAX(i.commission_paid_amount - COALESCE(i.commission_due, 0), 0)), 0),
 			CASE WHEN o.pin_hash <> '' THEN 1 ELSE 0 END, o.active
 		FROM owners o
 		LEFT JOIN cabins c ON c.owner_id = o.id
@@ -60,7 +61,7 @@ func (s *ownerService) Owners() ([]models.Owner, error) {
 	for rows.Next() {
 		var owner models.Owner
 		var hasPIN, active int
-		if err := rows.Scan(&owner.ID, &owner.Name, &owner.Cedula, &owner.WhatsApp, &owner.CabinCount, &owner.CommissionPaid, &owner.CommissionDue, &hasPIN, &active); err != nil {
+		if err := rows.Scan(&owner.ID, &owner.Name, &owner.Cedula, &owner.WhatsApp, &owner.CabinCount, &owner.CommissionPaid, &owner.CommissionDue, &owner.CommissionCredit, &hasPIN, &active); err != nil {
 			return nil, err
 		}
 		owner.HasPIN = hasPIN != 0

@@ -16,7 +16,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, state *cabinFormState, editing, ownerMode bool, ownerPage int, dialogMode bool) Node {
+func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, state *cabinFormState, editing, ownerMode bool, ownerPage int) Node {
 	title := "Nueva cabaña"
 	if editing {
 		title = "Editar cabaña"
@@ -73,16 +73,11 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 		descriptionClass += " border-red-300 focus:ring-red-200"
 	}
 	return Div(ID("cabin-page"),
-		If(editing && !dialogMode, Class("mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-12")),
-		If(dialogMode, Class("w-full p-4 sm:p-6")),
-		If(editing && !dialogMode && !ownerMode, A(Href("/admin/cabins"), Class("inline-flex items-center gap-2 text-sm font-bold text-brand-dark hover:underline"), lucide.ArrowLeft(Class("size-4"), Attr("aria-hidden", "true")), Text("Volver a cabañas"))),
-		If(!editing && !ownerMode || dialogMode,
-			Div(Class("flex items-start justify-between gap-4"),
-				components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
-				Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
-			),
+		Class("w-full p-4 sm:p-6"),
+		Div(Class("flex items-start justify-between gap-4"),
+			components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
+			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
-		If(editing && !dialogMode, Div(Class("mt-6"), components.PageHeading(title, "Datos de la cabaña y tarifas en pesos colombianos (COP)."))),
 		Form(Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"), If(editing && !ownerMode, Class("rounded-2xl border border-line bg-white p-5 sm:p-7")),
 			Div(Class("space-y-7"),
 				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
@@ -155,8 +150,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 			),
 			Div(Class("mt-6 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:flex-wrap"),
 				Button(Type("submit"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white transition hover:brightness-90 sm:w-auto"), lucide.Save(Class("size-4"), Attr("aria-hidden", "true")), Text("Guardar cabaña")),
-				If(dialogMode, Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
-				If(editing && !dialogMode, A(Href("/admin/cabins"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
+				Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar")),
 			),
 		),
 		If(editing && !ownerMode, Div(Class("mt-6 rounded-2xl border border-line bg-white p-5 sm:p-7"),

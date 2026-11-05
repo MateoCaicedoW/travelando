@@ -32,10 +32,10 @@ Availability search is connected to WhatsApp inquiries and a private follow-up f
 ## Capabilities and Constraints
 
 - Prices are represented in Colombian pesos (COP); Colombia is implied by the currency, but exact service areas are undecided.
-- Each cabin belongs to an owner; its public contact name and WhatsApp come from that owner. Owners can access only assigned cabins and calendar dates; guest details remain private.
+- Each cabin belongs to an owner; its public contact name and WhatsApp come from that owner. Owners can access only assigned cabins and reservations, including their guests' contact details; other owners' reservations remain private.
 - Admin can deactivate an owner without deleting their history; their cabins stay stored and hidden until the owner is reactivated.
 - Confirmed reservations occupy their configured time range plus each cabin's cleaning hours (default 3, configurable down to 0); manual admin blocks and owner-reported external bookings block full dates. External bookings do not appear as Travelando reservations and do not incur commission.
-- Commission is tracked as fully paid or outstanding per reserved inquiry; partial payments are not supported.
+- Commission rate is fixed per reservation. Reservation edits recalculate commission at that rate; post-payment changes are recorded as adjustments, yielding an outstanding balance or owner credit.
 - Specific accessibility requirements and standards have not been established.
 
 ## Brand Commitments

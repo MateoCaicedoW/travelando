@@ -18,7 +18,11 @@ type InquiryService interface {
 	CreateInquiry(*models.Inquiry) (string, error)
 	Inquiries() ([]models.Inquiry, error)
 	InquiryByToken(token string) (*models.Inquiry, error)
+	Reservation(id int64) (*models.Inquiry, error)
+	ReservationForOwner(ownerID, id int64) (*models.Inquiry, error)
 	ResolveInquiry(token string, status models.InquiryStatus, finalTotal int64) error
+	UpdateReservation(id int64, update models.ReservationUpdate) error
+	UpdateReservationForOwner(ownerID, id int64, update models.ReservationUpdate) error
 	MarkCommissionPaid(inquiryID int64) error
 }
 
@@ -152,7 +156,7 @@ func (s *inquiryService) MarkCommissionPaid(inquiryID int64) error {
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`UPDATE inquiries SET commission_paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'reserved' AND commission_due > 0 AND commission_paid_at IS NULL`, inquiryID)
+	result, err := db.Exec(`UPDATE inquiries SET commission_paid_amount = commission_due, commission_paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'reserved' AND commission_due > commission_paid_amount`, inquiryID)
 	if err != nil {
 		return err
 	}
@@ -171,6 +175,205 @@ func (s *inquiryService) MarkCommissionPaid(inquiryID int64) error {
 		return ErrNotFound
 	}
 	return ErrInvalidInput
+}
+
+func (s *inquiryService) Reservation(inquiryID int64) (*models.Inquiry, error) {
+	return s.reservation(inquiryID, 0)
+}
+
+func (s *inquiryService) ReservationForOwner(ownerID, inquiryID int64) (*models.Inquiry, error) {
+	if ownerID < 1 {
+		return nil, ErrInvalidInput
+	}
+	return s.reservation(inquiryID, ownerID)
+}
+
+func (s *inquiryService) reservation(inquiryID, ownerID int64) (*models.Inquiry, error) {
+	if inquiryID < 1 {
+		return nil, ErrInvalidInput
+	}
+	db, err := s.conn()
+	if err != nil {
+		return nil, err
+	}
+	query := inquirySelect + ` WHERE i.id = ? AND i.status = 'reserved'`
+	args := []any{inquiryID}
+	if ownerID > 0 {
+		query += ` AND c.owner_id = ?`
+		args = append(args, ownerID)
+	}
+	inquiry, err := scanInquiry(db.QueryRow(query, args...))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	inquiry.CommissionAdjustments, err = commissionAdjustments(db, inquiryID)
+	if err != nil {
+		return nil, err
+	}
+	return &inquiry, nil
+}
+
+func commissionAdjustments(db *sql.DB, inquiryID int64) ([]models.CommissionAdjustment, error) {
+	rows, err := db.Query(`SELECT previous_amount, new_amount, amount, actor_role, created_at FROM commission_adjustments WHERE inquiry_id = ? ORDER BY id`, inquiryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var adjustments []models.CommissionAdjustment
+	for rows.Next() {
+		var adjustment models.CommissionAdjustment
+		if err := rows.Scan(&adjustment.PreviousAmount, &adjustment.NewAmount, &adjustment.Amount, &adjustment.ActorRole, &adjustment.CreatedAt); err != nil {
+			return nil, err
+		}
+		adjustments = append(adjustments, adjustment)
+	}
+	return adjustments, rows.Err()
+}
+
+func (s *inquiryService) UpdateReservation(inquiryID int64, update models.ReservationUpdate) error {
+	return s.updateReservation(inquiryID, 0, "admin", update)
+}
+
+func (s *inquiryService) UpdateReservationForOwner(ownerID, inquiryID int64, update models.ReservationUpdate) error {
+	if ownerID < 1 {
+		return ErrInvalidInput
+	}
+	return s.updateReservation(inquiryID, ownerID, "owner", update)
+}
+
+func (s *inquiryService) updateReservation(inquiryID, ownerID int64, actorRole string, update models.ReservationUpdate) error {
+	if inquiryID < 1 {
+		return ErrInvalidInput
+	}
+	update.GuestName = strings.TrimSpace(update.GuestName)
+	update.GuestPhone = helpers.DigitsOnly(update.GuestPhone)
+	update.GuestEmail = strings.TrimSpace(update.GuestEmail)
+	if update.GuestName == "" || len(update.GuestName) > 120 || len(update.GuestPhone) < 8 || len(update.GuestPhone) > 15 || len(update.GuestEmail) > 254 || update.Guests < 1 {
+		return ErrInvalidInput
+	}
+	address, err := mail.ParseAddress(update.GuestEmail)
+	if err != nil || address.Address != update.GuestEmail {
+		return ErrInvalidInput
+	}
+	from, err := time.Parse(time.DateOnly, update.DateFrom)
+	if err != nil {
+		return ErrInvalidInput
+	}
+	to, err := time.Parse(time.DateOnly, update.DateTo)
+	if err != nil {
+		return ErrInvalidInput
+	}
+	if update.StayType == models.StayDayUse {
+		if !helpers.SameDate(from, to) {
+			return ErrInvalidInput
+		}
+	} else if update.StayType != models.StayOvernight || !to.After(from) || to.Sub(from).Hours()/24 > 365 {
+		return ErrInvalidInput
+	}
+
+	db, err := s.conn()
+	if err != nil {
+		return err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	query := inquirySelect + ` WHERE i.id = ? AND i.status = 'reserved'`
+	args := []any{inquiryID}
+	if ownerID > 0 {
+		query += ` AND c.owner_id = ?`
+		args = append(args, ownerID)
+	}
+	current, err := scanInquiry(tx.QueryRow(query, args...))
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	cabin, err := scanCabin(tx.QueryRow(cabinSelect+` WHERE c.id = ?`, current.CabinID))
+	if err != nil {
+		return err
+	}
+	if update.StayType == models.StayDayUse && !cabin.AcceptsDayUse || update.StayType == models.StayOvernight && !cabin.AcceptsOvernight {
+		return ErrStayTypeNotAccepted
+	}
+
+	dateTo := update.DateTo
+	if update.StayType == models.StayDayUse {
+		dateTo = from.AddDate(0, 0, 1).Format(time.DateOnly)
+	}
+	startTime, endTime, cleaningHours := current.StartTime, current.EndTime, current.CleaningHours
+	if update.StayType != current.StayType {
+		if update.StayType == models.StayDayUse {
+			startTime, endTime = cabin.DayStart, cabin.DayEnd
+		} else {
+			startTime, endTime = cabin.CheckIn, cabin.CheckOut
+		}
+		cleaningHours = cabin.CleaningHours
+	}
+
+	priceChanged := update.Guests != current.Guests || update.StayType != current.StayType || update.DateFrom != current.DateFrom || dateTo != current.DateTo
+	finalTotal := current.FinalTotal
+	if update.UseFinalTotal {
+		if update.FinalTotal < 0 || update.FinalTotal > MaxAmountCOP {
+			return ErrInvalidInput
+		}
+		finalTotal = update.FinalTotal
+	} else if priceChanged {
+		quoteEnd := to
+		if update.StayType == models.StayDayUse {
+			quoteEnd = from
+		}
+		finalTotal, err = Quote(QuoteInput{
+			Type: update.StayType, StartDate: from, EndDate: quoteEnd, Guests: update.Guests,
+			IncludedGuests: cabin.IncludedGuests, ExtraGuestPrice: cabin.ExtraGuestPrice,
+			DayPrice: cabin.DayPrice, NightPrice: cabin.NightPrice,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	commission, err := Commission(finalTotal, current.CommissionBP)
+	if err != nil {
+		return err
+	}
+	result, err := tx.Exec(`
+		UPDATE inquiries
+		SET guest_name = ?, guest_phone = ?, guest_email = ?, stay_type = ?, date_from = ?, date_to = ?,
+		    start_time = ?, end_time = ?, cleaning_hours = ?, guests = ?, final_total = ?, commission_due = ?
+		WHERE id = ? AND status = 'reserved'
+	`, update.GuestName, update.GuestPhone, update.GuestEmail, update.StayType, update.DateFrom, dateTo,
+		startTime, endTime, cleaningHours, update.Guests, finalTotal, commission, inquiryID)
+	if err != nil {
+		if strings.Contains(err.Error(), "dates unavailable") {
+			return ErrUnavailable
+		}
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrNotFound
+	}
+	if commission != current.Commission {
+		_, err = tx.Exec(`
+			INSERT INTO commission_adjustments (inquiry_id, previous_amount, new_amount, amount, actor_role, actor_owner_id)
+			VALUES (?, ?, ?, ?, ?, NULLIF(?, 0))
+		`, inquiryID, current.Commission, commission, commission-current.Commission, actorRole, ownerID)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (s *inquiryService) Inquiries() ([]models.Inquiry, error) {
@@ -297,7 +500,8 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 const inquirySelect = `
 	SELECT i.id, i.cabin_id, c.name, COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), i.guest_name, i.guest_phone, i.guest_email,
 	       i.stay_type, i.date_from, i.date_to, i.start_time, i.end_time, i.cleaning_hours, i.guests, i.estimated_total, i.status,
-	       COALESCE(i.final_total, 0), COALESCE(i.commission_bps, cs.commission_bps), COALESCE(i.commission_due, 0), COALESCE(i.commission_paid_at, ''), i.created_at
+	       COALESCE(i.final_total, 0), COALESCE(i.commission_bps, cs.commission_bps), COALESCE(i.commission_due, 0), COALESCE(i.commission_paid_at, ''),
+	       i.commission_paid_amount, COALESCE(i.commission_due, 0) - i.commission_paid_amount, i.created_at
 	FROM inquiries i JOIN cabins c ON c.id = i.cabin_id LEFT JOIN owners o ON o.id = c.owner_id JOIN commission_settings cs ON cs.id = 1
 `
 
@@ -306,7 +510,8 @@ func scanInquiry(row rowScanner) (models.Inquiry, error) {
 	err := row.Scan(
 		&inquiry.ID, &inquiry.CabinID, &inquiry.CabinName, &inquiry.OwnerName, &inquiry.WhatsApp,
 		&inquiry.GuestName, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo, &inquiry.StartTime, &inquiry.EndTime, &inquiry.CleaningHours,
-		&inquiry.Guests, &inquiry.Estimated, &inquiry.Status, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt, &inquiry.CreatedAt,
+		&inquiry.Guests, &inquiry.Estimated, &inquiry.Status, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt,
+		&inquiry.CommissionPaidAmount, &inquiry.CommissionBalance, &inquiry.CreatedAt,
 	)
 	return inquiry, err
 }

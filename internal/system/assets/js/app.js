@@ -13,6 +13,7 @@ window.Stimulus = application;
 htmx.config.responseHandling.unshift(
   { code: '400', swap: true, error: false },
   { code: '401', swap: true, error: false },
+  { code: '409', swap: true, error: false },
   { code: '422', swap: true, error: false },
 );
 window.htmx = htmx;

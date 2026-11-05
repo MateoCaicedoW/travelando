@@ -19,9 +19,12 @@ type CalendarData struct {
 type CalendarEntry struct {
 	CabinID     int64
 	CabinName   string
+	InquiryID   int64
 	DateFrom    string
 	DateTo      string
 	GuestName   string
+	GuestPhone  string
+	GuestEmail  string
 	Guests      int
 	StayType    models.StayType
 	BlockReason string
@@ -92,14 +95,14 @@ func (s *calendarService) Calendar(year int, month time.Month) (CalendarData, er
 		return CalendarData{}, err
 	}
 	rows, err := db.Query(`
-		SELECT i.cabin_id, c.name, i.date_from, i.date_to, i.guest_name, i.guests, i.stay_type, '', '', 0, 0,
+		SELECT i.cabin_id, c.name, i.id, i.date_from, i.date_to, i.guest_name, i.guest_phone, i.guest_email, i.guests, i.stay_type, '', '', 0, 0,
 		       i.date_from || ' ' || i.start_time,
 		       (CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time,
 		       datetime((CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time, printf('+%d hours', i.cleaning_hours))
 		FROM inquiries i JOIN cabins c ON c.id = i.cabin_id
 		WHERE i.status = 'reserved' AND i.date_from < ? AND `+reservationReady+` > datetime(?)
 		UNION ALL
-		SELECT b.cabin_id, c.name, b.date_from, b.date_to, '', 0, '', b.reason, b.source, 1, b.id, '', '', ''
+		SELECT b.cabin_id, c.name, 0, b.date_from, b.date_to, '', '', '', 0, '', b.reason, b.source, 1, b.id, '', '', ''
 		FROM cabin_blocks b JOIN cabins c ON c.id = b.cabin_id
 		WHERE b.date_from < ? AND b.date_to > ?
 		ORDER BY 3, 2
@@ -110,7 +113,7 @@ func (s *calendarService) Calendar(year int, month time.Month) (CalendarData, er
 	defer rows.Close()
 	for rows.Next() {
 		var entry CalendarEntry
-		if err := rows.Scan(&entry.CabinID, &entry.CabinName, &entry.DateFrom, &entry.DateTo, &entry.GuestName, &entry.Guests, &entry.StayType, &entry.BlockReason, &entry.BlockSource, &entry.IsBlock, &entry.BlockID, &entry.StartAt, &entry.EndAt, &entry.ReadyAt); err != nil {
+		if err := rows.Scan(&entry.CabinID, &entry.CabinName, &entry.InquiryID, &entry.DateFrom, &entry.DateTo, &entry.GuestName, &entry.GuestPhone, &entry.GuestEmail, &entry.Guests, &entry.StayType, &entry.BlockReason, &entry.BlockSource, &entry.IsBlock, &entry.BlockID, &entry.StartAt, &entry.EndAt, &entry.ReadyAt); err != nil {
 			return CalendarData{}, err
 		}
 		data.Entries = append(data.Entries, entry)
@@ -150,14 +153,14 @@ func (s *calendarService) OwnerCalendar(ownerID int64, year int, month time.Mont
 		return CalendarData{}, err
 	}
 	rows, err := db.Query(`
-		SELECT i.cabin_id, c.name, i.date_from, i.date_to, '', 0, '', '', '', 0, 0,
+		SELECT i.cabin_id, c.name, i.id, i.date_from, i.date_to, i.guest_name, i.guest_phone, i.guest_email, i.guests, i.stay_type, '', '', 0, 0,
 		       i.date_from || ' ' || i.start_time,
 		       (CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time,
 	       `+reservationReady+`
 		FROM inquiries i JOIN cabins c ON c.id = i.cabin_id JOIN owners o ON o.id = c.owner_id
 		WHERE c.owner_id = ? AND o.active = 1 AND i.status = 'reserved' AND i.date_from < ? AND `+reservationReady+` > datetime(?)
 		UNION ALL
-		SELECT b.cabin_id, c.name, b.date_from, b.date_to, '', 0, '', '', b.source, 1, b.id, '', '', ''
+		SELECT b.cabin_id, c.name, 0, b.date_from, b.date_to, '', '', '', 0, '', '', b.source, 1, b.id, '', '', ''
 		FROM cabin_blocks b JOIN cabins c ON c.id = b.cabin_id JOIN owners o ON o.id = c.owner_id
 		WHERE c.owner_id = ? AND o.active = 1 AND b.date_from < ? AND b.date_to > ?
 		ORDER BY 3, 2
@@ -168,7 +171,7 @@ func (s *calendarService) OwnerCalendar(ownerID int64, year int, month time.Mont
 	defer rows.Close()
 	for rows.Next() {
 		var entry CalendarEntry
-		if err := rows.Scan(&entry.CabinID, &entry.CabinName, &entry.DateFrom, &entry.DateTo, &entry.GuestName, &entry.Guests, &entry.StayType, &entry.BlockReason, &entry.BlockSource, &entry.IsBlock, &entry.BlockID, &entry.StartAt, &entry.EndAt, &entry.ReadyAt); err != nil {
+		if err := rows.Scan(&entry.CabinID, &entry.CabinName, &entry.InquiryID, &entry.DateFrom, &entry.DateTo, &entry.GuestName, &entry.GuestPhone, &entry.GuestEmail, &entry.Guests, &entry.StayType, &entry.BlockReason, &entry.BlockSource, &entry.IsBlock, &entry.BlockID, &entry.StartAt, &entry.EndAt, &entry.ReadyAt); err != nil {
 			return CalendarData{}, err
 		}
 		data.Entries = append(data.Entries, entry)
