@@ -25,7 +25,7 @@ func TestAvailabilityAndConfirmationRespectCleaningWindow(t *testing.T) {
 
 	inquiries := NewInquiryService(conn)
 	dayUse := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped día", GuestPhone: "573001234567", GuestEmail: "dia@example.com",
+		CabinID: 1, GuestName: "Huésped día", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "dia@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2026-11-15", DateTo: "2026-11-15", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&dayUse)
@@ -69,7 +69,7 @@ func TestAvailabilityAndConfirmationRespectCleaningWindow(t *testing.T) {
 	}
 
 	tooEarly := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped noche", GuestPhone: "573001234567", GuestEmail: "noche@example.com",
+		CabinID: 1, GuestName: "Huésped noche", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "noche@example.com", TermsAccepted: true,
 		StayType: models.StayOvernight, DateFrom: "2026-11-15", DateTo: "2026-11-16", Guests: 2,
 	}
 	if _, err := inquiries.CreateInquiry(&tooEarly); !errors.Is(err, ErrUnavailable) {
@@ -105,7 +105,7 @@ func TestAvailabilityAndConfirmationRespectCleaningWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 	monthEndUse := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped fin de mes", GuestPhone: "573001234567", GuestEmail: "mes@example.com",
+		CabinID: 1, GuestName: "Huésped fin de mes", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "mes@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2026-12-31", DateTo: "2026-12-31", Guests: 2,
 	}
 	token, err = inquiries.CreateInquiry(&monthEndUse)

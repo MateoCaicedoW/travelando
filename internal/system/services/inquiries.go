@@ -35,12 +35,14 @@ type InquiryService interface {
 
 func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) {
 	inquiry.GuestName = strings.TrimSpace(inquiry.GuestName)
+	inquiry.GuestCedula = helpers.DigitsOnly(inquiry.GuestCedula)
 	inquiry.GuestPhone = helpers.DigitsOnly(inquiry.GuestPhone)
 	inquiry.GuestEmail = strings.TrimSpace(inquiry.GuestEmail)
 	from, err := time.Parse("2006-01-02", inquiry.DateFrom)
-	if err != nil || inquiry.GuestName == "" || len(inquiry.GuestName) > 120 || len(inquiry.GuestPhone) < 8 || len(inquiry.GuestPhone) > 15 || len(inquiry.GuestEmail) > 254 || inquiry.Guests < 1 {
+	if err != nil || inquiry.GuestName == "" || len(inquiry.GuestName) > 120 || len(inquiry.GuestCedula) < 5 || len(inquiry.GuestCedula) > 15 || len(inquiry.GuestPhone) < 8 || len(inquiry.GuestPhone) > 15 || len(inquiry.GuestEmail) > 254 || inquiry.Guests < 1 || !inquiry.TermsAccepted {
 		return "", ErrInvalidInput
 	}
+	inquiry.TermsDocumentSHA256 = models.CurrentTermsDocumentSHA256
 	if inquiry.DateFrom < time.Now().Format("2006-01-02") {
 		return "", ErrInvalidInput
 	}
@@ -145,9 +147,9 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 		return "", err
 	}
 	_, err = tx.Exec(`
-		INSERT INTO inquiries (cabin_id, guest_name, guest_phone, guest_email, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, deposit_cop, report_token_hash)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, cabin.ID, inquiry.GuestName, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.StartTime, inquiry.EndTime, inquiry.CleaningHours, inquiry.Guests, estimated, deposit, hashToken(token))
+		INSERT INTO inquiries (cabin_id, guest_name, guest_cedula, guest_phone, guest_email, terms_accepted_at, terms_document_sha256, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, deposit_cop, report_token_hash)
+		VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.ID, inquiry.GuestName, inquiry.GuestCedula, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.TermsDocumentSHA256, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.StartTime, inquiry.EndTime, inquiry.CleaningHours, inquiry.Guests, estimated, deposit, hashToken(token))
 	if err != nil {
 		return "", err
 	}
@@ -816,7 +818,7 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 }
 
 const inquirySelect = `
-	SELECT i.id, i.cabin_id, c.name, COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), i.guest_name, i.guest_phone, i.guest_email,
+	SELECT i.id, i.cabin_id, c.name, COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), i.guest_name, i.guest_cedula, i.guest_phone, i.guest_email, i.terms_accepted_at IS NOT NULL, COALESCE(i.terms_accepted_at, ''), i.terms_document_sha256,
 	       i.stay_type, i.date_from, i.date_to, i.start_time, i.end_time, i.cleaning_hours, i.guests, i.estimated_total, i.deposit_cop,
 	       CASE WHEN i.cancelled_at IS NOT NULL THEN 'cancelled' ELSE i.status END, COALESCE(i.cancelled_from_status, ''),
 	       COALESCE(i.final_total, 0), COALESCE(i.commission_bps, cs.commission_bps), COALESCE(i.commission_due, 0), COALESCE(i.commission_paid_at, ''),
@@ -828,7 +830,7 @@ func scanInquiry(row rowScanner) (models.Inquiry, error) {
 	var inquiry models.Inquiry
 	err := row.Scan(
 		&inquiry.ID, &inquiry.CabinID, &inquiry.CabinName, &inquiry.OwnerName, &inquiry.WhatsApp,
-		&inquiry.GuestName, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo, &inquiry.StartTime, &inquiry.EndTime, &inquiry.CleaningHours,
+		&inquiry.GuestName, &inquiry.GuestCedula, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.TermsAccepted, &inquiry.TermsAcceptedAt, &inquiry.TermsDocumentSHA256, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo, &inquiry.StartTime, &inquiry.EndTime, &inquiry.CleaningHours,
 		&inquiry.Guests, &inquiry.Estimated, &inquiry.DepositCOP, &inquiry.Status, &inquiry.CancelledFromStatus, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt,
 		&inquiry.CommissionPaidAmount, &inquiry.CommissionBalance, &inquiry.CreatedAt,
 	)

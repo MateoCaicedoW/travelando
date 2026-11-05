@@ -15,7 +15,9 @@
   "dependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "basecoat-css": "^1.1.0",
-    "htmx.org": "^2.0.11"
+    "htmx.org": "^2.0.11",
+    "photoswipe": "^5.4.4",
+    "sweetalert2": "^11.26.25"
   },
   "overrides": {
     "postcss-selector-parser": "^6.1.5"

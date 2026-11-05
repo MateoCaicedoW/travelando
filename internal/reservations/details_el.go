@@ -75,7 +75,7 @@ func reservationDetailsEl(inquiry models.Inquiry, owner bool) Node {
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
 		Div(Class("grid gap-4 md:grid-cols-2"),
-			detailSection("Huésped", detailLine("Nombre", inquiry.GuestName), detailLine("Teléfono", inquiry.GuestPhone), detailLine("Correo", inquiry.GuestEmail)),
+			detailSection("Huésped", detailLine("Nombre", inquiry.GuestName), detailLine("Cédula", inquiry.GuestCedula), detailLine("Teléfono", inquiry.GuestPhone), detailLine("Correo", inquiry.GuestEmail), detailLine("Términos aceptados", termsAcceptedLabel(inquiry))),
 			detailSection("Estadía", detailLine("Cabaña", inquiry.CabinName), detailLine("Dueño", inquiry.OwnerName), detailLine("Tipo", stayType), detailLine("Horario", helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime)), detailLine("Huéspedes", strconv.Itoa(inquiry.Guests))),
 			detailSection("Fechas", detailLine("Estadía", helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)), detailLine("Limpieza", strconv.Itoa(inquiry.CleaningHours)+" horas")),
 			values,
@@ -101,6 +101,13 @@ func reservationDetailsEl(inquiry models.Inquiry, owner bool) Node {
 			),
 		)),
 	)
+}
+
+func termsAcceptedLabel(inquiry models.Inquiry) string {
+	if inquiry.TermsAcceptedAt == "" {
+		return "No registrado"
+	}
+	return "Sí · " + inquiry.TermsAcceptedAt
 }
 
 func detailSection(title string, rows ...Node) Node {

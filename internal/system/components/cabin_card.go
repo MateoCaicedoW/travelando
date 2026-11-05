@@ -84,7 +84,9 @@ func cabinPhotoCarousel(name string, photos []models.CabinPhoto, aspect string) 
 	slides := make([]Node, len(photos))
 	for i, photo := range photos {
 		slides[i] = Div(Role("group"), Attr("aria-label", "Foto "+strconv.Itoa(i+1)+" de "+strconv.Itoa(len(photos))), Class("h-full w-full shrink-0 snap-center"),
-			Img(Src(photo.URL), Alt("Vista de "+name), Attr("loading", "lazy"), Class("h-full w-full object-cover")),
+			Button(Type("button"), Attr("data-action", "click->photo-carousel#open"), Attr("data-photo-carousel-index", strconv.Itoa(i)), Attr("aria-label", "Abrir foto "+strconv.Itoa(i+1)+" de "+strconv.Itoa(len(photos))), Class("h-full w-full cursor-zoom-in p-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-brand-dark"),
+				Img(Src(photo.URL), Alt("Vista de "+name), Attr("loading", "lazy"), Class("h-full w-full object-cover")),
+			),
 		)
 	}
 	return Div(Role("region"), Attr("aria-label", "Fotos de "+name), Attr("data-controller", "photo-carousel"), Attr("data-photo-carousel", ""), Class("relative overflow-hidden bg-cream "+aspect),

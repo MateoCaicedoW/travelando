@@ -50,8 +50,9 @@ func createRequest(w http.ResponseWriter, r *http.Request) (string, validate.Err
 	}
 	inquiry := models.Inquiry{
 		CabinID: cabinID, GuestName: r.FormValue("guest_name"), GuestPhone: r.FormValue("guest_phone"),
-		GuestEmail: r.FormValue("guest_email"), StayType: models.StayType(r.FormValue("stay_type")),
-		DateFrom: r.FormValue("date_from"), DateTo: r.FormValue("date_to"), Guests: guests,
+		GuestCedula: r.FormValue("guest_cedula"), GuestEmail: r.FormValue("guest_email"), StayType: models.StayType(r.FormValue("stay_type")),
+		TermsAccepted: r.FormValue("terms_accepted") == "on",
+		DateFrom:      r.FormValue("date_from"), DateTo: r.FormValue("date_to"), Guests: guests,
 	}
 	token, err := svc.CreateInquiry(&inquiry)
 	if err != nil {
@@ -67,8 +68,8 @@ func createRequest(w http.ResponseWriter, r *http.Request) (string, validate.Err
 	if inquiry.DepositCOP > 0 {
 		depositLine = "\nDepósito incluido: $" + helpers.FormatCOP(inquiry.DepositCOP) + " COP"
 	}
-	message := fmt.Sprintf("Hola, quiero consultar por %s.\n\nNombre: %s\nTeléfono: %s\nPlan: %s\nFechas: %s\nHorario: %s\nHuéspedes: %d\nPrecio estimado: $%s COP%s\n\nReferencia para reportar el resultado: %s",
-		inquiry.CabinName, inquiry.GuestName, inquiry.GuestPhone, stay, helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo), helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime), inquiry.Guests, helpers.FormatCOP(inquiry.Estimated), depositLine, reportURL)
+	message := fmt.Sprintf("Hola, quiero consultar por %s.\n\nNombre: %s\nCédula: %s\nTeléfono: %s\nPlan: %s\nFechas: %s\nHorario: %s\nHuéspedes: %d\nPrecio estimado: $%s COP%s\n\nReferencia para reportar el resultado: %s",
+		inquiry.CabinName, inquiry.GuestName, inquiry.GuestCedula, inquiry.GuestPhone, stay, helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo), helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime), inquiry.Guests, helpers.FormatCOP(inquiry.Estimated), depositLine, reportURL)
 	return "https://wa.me/" + inquiry.WhatsApp + "?" + url.Values{"text": {message}}.Encode(), nil, nil
 }
 
@@ -79,9 +80,22 @@ func inquiryFormErrors(r *http.Request) validate.Errors {
 		validate.Field("date_to", validEndDate(r.FormValue("stay_type"), r.FormValue("date_from"))),
 		validate.Field("guests", validate.Required("Indica cuántos huéspedes asistirán."), guestCountRange),
 		validate.Field("guest_name", validate.Required("Ingresa tu nombre."), validate.MaxLength(120, "Usa máximo 120 caracteres.")),
+		validate.Field("guest_cedula", validate.Required("Ingresa tu cédula."), validGuestCedula),
 		validate.Field("guest_phone", validate.Required("Ingresa tu teléfono."), validGuestPhone),
 		validate.Field("guest_email", validate.Required("Ingresa tu correo."), validate.MaxLength(254, "Usa máximo 254 caracteres."), validGuestEmail),
+		validate.Field("terms_accepted", validate.Required("Debes aceptar los términos y condiciones."), validate.WithinOptions([]string{"on"}, "Debes aceptar los términos y condiciones.")),
 	))
+}
+
+func validGuestCedula(values []string) error {
+	if missing(values) {
+		return nil
+	}
+	digits := helpers.DigitsOnly(values[0])
+	if len(digits) < 5 || len(digits) > 15 {
+		return errors.New("Ingresa una cédula válida de 5 a 15 dígitos.")
+	}
+	return nil
 }
 
 func validStartDate() validate.ValidatorFn {

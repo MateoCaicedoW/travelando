@@ -6,6 +6,7 @@ const root = resolve(process.cwd(), 'internal/system/assets');
 
 export default defineConfig({
   root,
+  base: './',
   publicDir: false,
   plugins: [tailwindcss()],
   server: {

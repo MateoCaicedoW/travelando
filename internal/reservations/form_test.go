@@ -95,6 +95,17 @@ func TestReservationEditAlwaysRendersModal(t *testing.T) {
 	}
 }
 
+func TestReservationEditFormAvoidsNestedCardPadding(t *testing.T) {
+	var html strings.Builder
+	inquiry := models.Inquiry{ID: 7, Status: models.InquiryPending, StayType: models.StayDayUse, DateFrom: "2027-02-10", DateTo: "2027-02-11"}
+	if err := reservationForm(inquiry, nil, false, "reservations").Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html.String(), `class="w-full px-4 py-5 sm:px-6 sm:py-6"`) || strings.Contains(html.String(), `rounded-2xl border border-line bg-white p-5 sm:p-7`) {
+		t.Fatalf("reservation edit form should use one compact content padding, got: %s", html.String())
+	}
+}
+
 func TestOwnerReservationEditPreservesReservationsListDestination(t *testing.T) {
 	r := httptest.NewRequest("GET", "/?return_to=reservations", nil)
 	response := httptest.NewRecorder()

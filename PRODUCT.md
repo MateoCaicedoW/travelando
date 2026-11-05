@@ -23,7 +23,7 @@ Availability search is connected to WhatsApp inquiries and a private follow-up f
 ## Operating Context
 
 - Spanish-language catalog with availability search by dates, stay type (pasadía or estadía), and guest count. Cabin settings define each stay's entry and exit times; guests do not select hours.
-- Guest requests open a prefilled WhatsApp message to the cabin contact.
+- Guest requests require name, cédula, phone, email, and acceptance of Travelando terms; cédula is shared with the cabin contact in a prefilled WhatsApp message, and acceptance time and document version are recorded.
 - The private admin manages owners, assigned cabins, inquiry outcomes, full commission payments, and reservation dates.
 - Owners sign in with their cédula and six-digit PIN, can create cabins published immediately, and can toggle assigned cabins active or inactive.
 - The administrator configures one global commission rate for all new reservations.

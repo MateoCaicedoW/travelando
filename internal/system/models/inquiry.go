@@ -1,5 +1,7 @@
 package models
 
+const CurrentTermsDocumentSHA256 = "51394e505fdd87eab1cc5ed5ffca848bafdb690e735ad79b6fbac38c4cb8fde8"
+
 type StayType string
 
 const (
@@ -23,8 +25,12 @@ type Inquiry struct {
 	OwnerName             string
 	WhatsApp              string
 	GuestName             string
+	GuestCedula           string
 	GuestPhone            string
 	GuestEmail            string
+	TermsAccepted         bool
+	TermsAcceptedAt       string
+	TermsDocumentSHA256   string
 	StayType              StayType
 	DateFrom              string
 	DateTo                string

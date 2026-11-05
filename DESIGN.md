@@ -2,32 +2,35 @@
 name: Travelando
 description: A warm, direct visual system for finding a cabin escape.
 colors:
-  trail-orange: "#ff7300"
+  trail-orange: "#ff5d06"
   burnt-trail: "#c24200"
-  warm-graphite: "#272820"
-  soft-olive-gray: "#66665f"
-  cabin-cream: "#fff8f0"
-  sandstone-line: "#e9e0d6"
-  pine-green: "#376b4c"
-  pine-mist: "#edf4ee"
+  warm-graphite: "#004928"
+  soft-olive-gray: "#3d624b"
+  cabin-cream: "#fffdeb"
+  sandstone-line: "#d5dfd5"
+  pine-green: "#004928"
+  pine-mist: "#e8f1e9"
   white: "#ffffff"
 typography:
   display:
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+    fontFamily: '"Barlow Semi Condensed", sans-serif'
     fontSize: "3.75rem"
     fontWeight: 900
     lineHeight: 1.06
     letterSpacing: "-0.04em"
+    fontStyle: italic
   headline:
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+    fontFamily: '"Barlow Semi Condensed", sans-serif'
     fontSize: "2.25rem"
     fontWeight: 800
     lineHeight: 1.2
+    fontStyle: italic
   title:
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
+    fontFamily: '"Barlow Semi Condensed", sans-serif'
     fontSize: "1.25rem"
     fontWeight: 800
     lineHeight: 1.4
+    fontStyle: italic
   body:
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
     fontSize: "1rem"
@@ -55,8 +58,8 @@ spacing:
   12: "3rem"
 components:
   button-primary:
-    backgroundColor: "{colors.trail-orange}"
-    textColor: "{colors.warm-graphite}"
+    backgroundColor: "{colors.burnt-trail}"
+    textColor: "{colors.white}"
     rounded: "{rounded.lg}"
     height: "48px"
     padding: "12px 20px"
@@ -92,24 +95,24 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Warm Trailhead"**
+**Creative North Star: "Naranja en el sendero"**
 
-Travelando feels like a friendly, practical starting point for finding an escape. Warm cream and orange create an inviting catalog; direct headings, clear controls, and sturdy action buttons keep the path to a cabin easy to follow. The system uses a native sans-serif voice rather than a decorative display face, so the interface stays familiar across guest and admin tasks.
+Travelando feels like a friendly, practical starting point for finding an escape. Bright orange, deep forest green, and pale cream make the brand unmistakable; oblique, condensed headings carry the character of the identity while body text stays familiar and readable.
 
 The guest catalog is welcoming and image-led where cabin photography exists. Administrative screens reuse the same surfaces and controls, with denser tables and lists that prioritize scanability. Pine green marks successful or confirmed states. The visual mood is warm and direct, not a polished luxury-resort aesthetic.
 
 **Key Characteristics:**
-- Warm cream surfaces, orange actions, and graphite text.
-- Compact labels and bold, tightly tracked headings.
+- Pale cream surfaces, orange brand/actions, and forest-green text.
+- Oblique, extra-bold condensed headings with neutral sans-serif body text.
 - Rounded, thin-bordered cards with restrained depth.
 - Responsive, utility-led layouts shared by guest and admin pages.
 
 ## Colors
 
-The palette pairs a bright trail orange with a deeper action orange, warm neutrals, and a restrained pine success color.
+The palette follows the supplied identity: bright orange `#ff5d06`, forest green `#004928`, and cream `#fffdeb`.
 
 ### Primary
-- **Trail Orange:** Discovery accents, brand mark, and form focus.
+- **Trail Orange:** Primary brand color, brand mark, and discovery accents.
 - **Burnt Trail:** High-contrast primary actions and emphasis text.
 
 ### Secondary
@@ -117,21 +120,21 @@ The palette pairs a bright trail orange with a deeper action orange, warm neutra
 - **Pine Mist:** Soft success notices.
 
 ### Neutral
-- **Warm Graphite:** Primary text and important values.
-- **Soft Olive Gray:** Supporting copy and secondary labels.
+- **Warm Graphite:** Deep forest-green primary text and important values.
+- **Soft Olive Gray:** Supporting green copy and secondary labels.
 - **Cabin Cream:** Warm page bands, badges, and low-emphasis surfaces.
 - **Sandstone Line:** Card, field, and section borders.
 - **White:** Card and input surfaces, plus text on filled actions.
 
-**The Orange-Action Rule.** Trail Orange carries guest-facing actions with graphite text; Burnt Trail carries high-emphasis admin actions with white text and strong text on light surfaces.
+**The Orange-Action Rule.** Trail Orange leads the identity; Burnt Trail carries primary actions with white text for accessible contrast. Forest Green supports typography and confirmed states.
 
 ## Typography
 
-**Display Font:** System sans-serif stack (`-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Arial, sans-serif`)
-**Body Font:** Same system sans-serif stack
+**Display Font:** Barlow Semi Condensed, italic 800/900 (SIL Open Font License 1.1), used for headings and wordmark.
+**Body Font:** System sans-serif stack (`-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Arial, sans-serif`)
 **Label/Mono Font:** No distinct label or mono family; labels use the body stack.
 
-**Character:** Bold, close-set headings provide confidence without a separate display face. Body text stays neutral and comfortably spaced; small uppercase labels add hierarchy without becoming ornamental.
+**Character:** Bold, oblique condensed headings echo the supplied Tablet Gothic specimen. Body text stays neutral and comfortably spaced; small uppercase labels add hierarchy without becoming ornamental.
 
 ### Hierarchy
 - **Display** (black weight, responsive 36–60px, tight 1.06 line-height): Homepage hero only.
@@ -159,8 +162,8 @@ Cards use generously rounded corners; buttons and fields use smaller rounded cor
 ### Buttons
 - **Character:** Direct and sturdy, with bold labels and clear contrast.
 - **Shape:** Gently rounded; primary buttons use the `lg` radius token.
-- **Primary:** Trail Orange fill with graphite text for guest-facing actions; see `button-primary` token.
-- **Strong:** Burnt Trail fill with white text for high-emphasis admin actions; see `button-strong` token.
+- **Primary:** Burnt Trail fill with white text for high-emphasis actions; see `button-primary` token.
+- **Accent:** Trail Orange leads the brand mark, focus, and discovery details.
 - **Hover / Focus:** The fill darkens on hover. Keyboard focus gets a visible, offset outline in the deep orange.
 - **Secondary:** White or transparent surface, sandstone border, graphite text; hover shifts the border toward orange.
 
@@ -181,18 +184,18 @@ Cards use generously rounded corners; buttons and fields use smaller rounded cor
 - **Error / Disabled:** Errors use red text and pale red surfaces. No distinct disabled treatment is established.
 
 ### Navigation
-- **Style:** A cream header and footer frame a centered content width. The brand pairs a compact orange “T” tile with a bold wordmark; navigation links stay brief and collapse secondary exploration on narrow screens.
+- **Style:** A cream header and footer frame a centered content width. The brand pairs the orange Travelando icon with a bold wordmark; navigation links stay brief and collapse secondary exploration on narrow screens.
 - **States:** Links are graphite at rest and shift toward deep orange on hover; the admin link uses a light bordered pill.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** use Trail Orange for guest-facing actions with graphite text, and Burnt Trail for high-emphasis admin actions with white text.
+- **Do** use Trail Orange as the primary brand color and Burnt Trail for high-emphasis actions with white text.
 - **Do** use Pine Green and Pine Mist for successful or confirmed states.
 - **Do** preserve the shared card, form, and button language across guest and admin screens.
 - **Do** let responsive grids add columns at established breakpoints rather than shrinking content too far.
 
 ### Don't:
 - **Don't** turn the cabin catalog into a polished luxury-resort aesthetic.
-- **Don't** add decorative colors or a separate display font without a deliberate system change.
+- **Don't** add decorative colors or use display type for body copy.
 - **Don't** use shadow as the default way to separate cards; borders and tonal surfaces do that work.

@@ -67,6 +67,29 @@ func TestExploreHeaderDoesNotExposeAdministration(t *testing.T) {
 	}
 }
 
+func TestLayoutUsesStimulusSweetAlertConfirmations(t *testing.T) {
+	html := renderLayout(t, "")
+	for _, want := range []string{`data-controller="confirmation"`, `htmx:confirm@document-&gt;confirmation#confirm submit-&gt;confirmation#submit`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("layout missing confirmation integration %q", want)
+		}
+	}
+}
+
+func TestLayoutIncludesBrandIconsForBrowsersAndMobile(t *testing.T) {
+	html := renderLayout(t, "")
+	for _, want := range []string{
+		`href="/assets/brand-orange-cream.png"`,
+		`href="/assets/brand-cream-orange.png" media="(prefers-color-scheme: light)"`,
+		`href="/assets/brand-forest-cream.png" media="(prefers-color-scheme: dark)"`,
+		`rel="apple-touch-icon" href="/assets/brand-orange-cream.png"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("layout missing brand icon link %q", want)
+		}
+	}
+}
+
 func TestBareLayoutHasNoHeaderOrFooter(t *testing.T) {
 	html := renderLayout(t, PortalBare)
 	for _, unwanted := range []string{"Travelando", "Explorar", "Encuentra tu próxima escapada."} {

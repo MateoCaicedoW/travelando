@@ -28,3 +28,14 @@ func TestCabinDetailShowsGlobalDepositOrNoDeposit(t *testing.T) {
 		}
 	}
 }
+
+func TestCabinInquiryFormRequestsCedulaAndTermsAcceptance(t *testing.T) {
+	var html strings.Builder
+	data := PageData{StayType: models.StayDayUse, Guests: 2}
+	if err := CabinEl(models.Cabin{Name: "Cabaña", IncludedGuests: 2, AcceptsDayUse: true, DayPrice: 100000}, data).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(html.String(), `name="guest_cedula"`) || !strings.Contains(html.String(), "Tu cédula") || !strings.Contains(html.String(), `name="terms_accepted"`) || !strings.Contains(html.String(), "text-brand") || !strings.Contains(html.String(), "border-line") || !strings.Contains(html.String(), "focus:ring-brand/20") || !strings.Contains(html.String(), "acepto los términos y condiciones") || !strings.Contains(html.String(), "/assets/terms-and-conditions.pdf") {
+		t.Fatalf("inquiry form should request cédula and link terms acceptance: %s", html.String())
+	}
+}

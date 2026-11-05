@@ -21,7 +21,7 @@ func TestCancelReservationReleasesDatesAndWaivesUnpaidCommission(t *testing.T) {
 
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-02-10", DateTo: "2099-02-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -79,7 +79,7 @@ func TestCancelReservationKeepsPaidCommissionInOwnerHistory(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-03-10", DateTo: "2099-03-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -128,7 +128,7 @@ func TestUpdatePendingInquiryRequotesAndKeepsPendingStatus(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-02-10", DateTo: "2099-02-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -168,7 +168,7 @@ func TestUpdatePendingInquiryRejectsDatesOccupiedByConfirmedReservation(t *testi
 	makeInquiry := func(name, email, date string) int64 {
 		t.Helper()
 		request := models.Inquiry{
-			CabinID: 1, GuestName: name, GuestPhone: "573001234567", GuestEmail: email,
+			CabinID: 1, GuestName: name, GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: email, TermsAccepted: true,
 			StayType: models.StayDayUse, DateFrom: date, DateTo: date, Guests: 2,
 		}
 		token, err := inquiries.CreateInquiry(&request)
@@ -183,7 +183,7 @@ func TestUpdatePendingInquiryRejectsDatesOccupiedByConfirmedReservation(t *testi
 	}
 	pendingID := makeInquiry("Pendiente", "pending@example.com", "2099-04-10")
 	reservedToken, err := inquiries.CreateInquiry(&models.Inquiry{
-		CabinID: 1, GuestName: "Confirmada", GuestPhone: "573001234567", GuestEmail: "reserved@example.com",
+		CabinID: 1, GuestName: "Confirmada", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "reserved@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-04-11", DateTo: "2099-04-11", Guests: 2,
 	})
 	if err != nil {
@@ -213,7 +213,7 @@ func TestCancelPendingInquiryIsRecordedAsCancelled(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-05-10", DateTo: "2099-05-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)

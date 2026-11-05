@@ -1,0 +1,1 @@
+ALTER TABLE inquiries ADD COLUMN guest_cedula TEXT NOT NULL DEFAULT '';

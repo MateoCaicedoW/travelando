@@ -31,6 +31,10 @@ func (props Layout) New(request ...*http.Request) Node {
 		Meta(Name("viewport"), Content("width=device-width, initial-scale=1.0")),
 		TitleEl(Text(props.Title)),
 		If(props.Description != "", Meta(Name("description"), Content(props.Description))),
+		Link(Rel("icon"), Type("image/png"), Href("/assets/brand-orange-cream.png")),
+		Link(Rel("icon"), Type("image/png"), Href("/assets/brand-cream-orange.png"), Attr("media", "(prefers-color-scheme: light)")),
+		Link(Rel("icon"), Type("image/png"), Href("/assets/brand-forest-cream.png"), Attr("media", "(prefers-color-scheme: dark)")),
+		Link(Rel("apple-touch-icon"), Href("/assets/brand-orange-cream.png")),
 		Link(Rel("stylesheet"), Href(assets.Path("/css/tailwind.css"))),
 		Script(Type("module"), Src(assets.Path("/js/app.js"))),
 	}
@@ -75,7 +79,7 @@ func (props Layout) New(request ...*http.Request) Node {
 	}
 	return Doctype(HTML(Lang("es"), Class("h-full"),
 		Head(head...),
-		Body(Class("min-h-full bg-white font-sans text-ink antialiased"),
+		Body(Attr("data-controller", "confirmation"), Attr("data-action", "htmx:confirm@document->confirmation#confirm submit->confirmation#submit"), Class("min-h-full bg-cream font-sans text-ink antialiased"),
 			page,
 		),
 	))

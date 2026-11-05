@@ -25,11 +25,22 @@ func TestCabinCardUsesSharedDetailsAndPhotoCarousel(t *testing.T) {
 	for _, want := range []string{
 		"/foto-1", "/foto-2", "Fotos de Cabaña", "Foto anterior", "Foto siguiente",
 		`data-controller="photo-carousel"`, `data-action="click-&gt;photo-carousel#scroll"`,
+		`data-action="click-&gt;photo-carousel#open"`, `data-photo-carousel-index="0"`,
 		"Cabaña", "Montaña", "Vista al valle", "4 huéspedes incluidos", "08:00 a 18:00", "$100.000 COP", "Ver cabaña",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("cabin card missing %q: %s", want, html)
 		}
+	}
+}
+
+func TestBrandUsesTravelandoIcon(t *testing.T) {
+	var output bytes.Buffer
+	if err := Brand().Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	if html := output.String(); !strings.Contains(html, `src="/assets/brand-orange-cream.png"`) || !strings.Contains(html, `alt=""`) || !strings.Contains(html, "Travelando") {
+		t.Fatalf("brand should use icon with accessible wordmark: %s", html)
 	}
 }
 

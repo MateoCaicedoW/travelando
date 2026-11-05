@@ -21,7 +21,7 @@ func TestUpdateReservedInquiryRequotesAndKeepsCommissionRateAfterPayment(t *test
 
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2027-02-10", DateTo: "2027-02-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -145,7 +145,7 @@ func TestOwnerCannotUpdateAnotherOwnersReservation(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2027-02-10", DateTo: "2027-02-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -195,7 +195,7 @@ func TestReservationsForOwnerScopesConfirmedReservations(t *testing.T) {
 	create := func(cabinID int64, email, date string, confirm bool) string {
 		t.Helper()
 		request := models.Inquiry{
-			CabinID: cabinID, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: email,
+			CabinID: cabinID, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: email, TermsAccepted: true,
 			StayType: models.StayDayUse, DateFrom: date, DateTo: date, Guests: 2,
 		}
 		token, err := inquiries.CreateInquiry(&request)
@@ -250,7 +250,7 @@ func TestOwnerCanCancelOnlyTheirOwnReservation(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	token, err := inquiries.CreateInquiry(&models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-10-10", DateTo: "2099-10-10", Guests: 2,
 	})
 	if err != nil {
@@ -290,7 +290,7 @@ func TestOwnerCanUpdateOnlyTheirOwnPendingInquiry(t *testing.T) {
 	}
 	inquiries := NewInquiryService(conn)
 	request := models.Inquiry{
-		CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 		StayType: models.StayDayUse, DateFrom: "2099-09-10", DateTo: "2099-09-10", Guests: 2,
 	}
 	token, err := inquiries.CreateInquiry(&request)
@@ -334,7 +334,7 @@ func TestUpdateReservationRejectsOverlappingDates(t *testing.T) {
 	makeReservation := func(date string) (*models.Inquiry, string) {
 		t.Helper()
 		request := models.Inquiry{
-			CabinID: 1, GuestName: "Huésped", GuestPhone: "573001234567", GuestEmail: "guest@example.com",
+			CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
 			StayType: models.StayDayUse, DateFrom: date, DateTo: date, Guests: 2,
 		}
 		token, err := inquiries.CreateInquiry(&request)

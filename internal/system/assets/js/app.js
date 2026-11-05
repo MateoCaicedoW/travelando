@@ -4,6 +4,7 @@ import 'basecoat-css/basecoat';
 import 'basecoat-css/combobox';
 import FlashController from './controllers/flash_controller';
 import AdminNavigationController from './controllers/admin_navigation_controller';
+import ConfirmationController from './controllers/confirmation_controller';
 import ModalController from './controllers/modal_controller';
 import PhotoCarouselController from './controllers/photo_carousel_controller';
 import PriceEstimateController from './controllers/price_estimate_controller';
@@ -11,6 +12,7 @@ import SearchableSelectController from './controllers/searchable_select_controll
 
 const application = Application.start();
 application.register('admin-navigation', AdminNavigationController);
+application.register('confirmation', ConfirmationController);
 application.register('flash', FlashController);
 application.register('modal', ModalController);
 application.register('photo-carousel', PhotoCarouselController);

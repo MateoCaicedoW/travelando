@@ -1,18 +1,45 @@
 @import "tailwindcss";
+@import "sweetalert2/dist/sweetalert2.min.css";
+@import "photoswipe/style.css";
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  font-style: italic;
+  font-weight: 800;
+  font-display: swap;
+  src: url("../fonts/barlow-semi-condensed-800-italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  font-style: italic;
+  font-weight: 900;
+  font-display: swap;
+  src: url("../fonts/barlow-semi-condensed-900-italic.woff2") format("woff2");
+}
 
 @theme {
-  --color-brand: #ff7300;
+  --color-brand: #ff5d06;
   --color-brand-dark: #c24200;
-  --color-ink: #272820;
-  --color-muted: #66665f;
-  --color-cream: #fff8f0;
-  --color-line: #e9e0d6;
-  --color-forest: #376b4c;
-  --color-forest-soft: #edf4ee;
+  --color-ink: #004928;
+  --color-muted: #3d624b;
+  --color-cream: #fffdeb;
+  --color-line: #d5dfd5;
+  --color-forest: #004928;
+  --color-forest-soft: #e8f1e9;
+  --font-display: "Barlow Semi Condensed", sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+.brand-wordmark {
+  font-family: var(--font-display);
+  font-style: italic;
 }
 
 ::selection {
@@ -33,7 +60,23 @@ select:focus,
 textarea:focus {
   border-color: var(--color-brand);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(255 115 0 / 16%);
+  box-shadow: 0 0 0 3px rgb(255 93 6 / 16%);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+input[type="checkbox"]:not(:checked),
+input[type="radio"]:not(:checked) {
+  border-color: var(--color-line);
+}
+
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  --tw-ring-color: rgb(255 93 6 / 20%);
 }
 
 :focus-visible {

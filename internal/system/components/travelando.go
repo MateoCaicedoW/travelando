@@ -13,17 +13,21 @@ func Brand() Node {
 	return brandAt("/")
 }
 
+func brandIcon() Node {
+	return Img(Src("/assets/brand-orange-cream.png"), Alt(""), Class("size-9 shrink-0 rounded-xl sm:size-10"))
+}
+
 func brandAt(href string) Node {
 	return A(Href(href), Class("inline-flex items-center gap-2.5 font-extrabold tracking-tight text-ink"),
-		Span(Class("grid size-9 place-items-center rounded-xl bg-brand text-lg font-black text-ink sm:size-10"), Text("T")),
-		Span(Class("text-xl"), Text("Travelando")),
+		brandIcon(),
+		Span(Class("brand-wordmark text-xl text-brand"), Text("Travelando")),
 	)
 }
 
 func adminBrand() Node {
 	return A(Href("/admin/"), Attr("aria-label", "Travelando"), Class("inline-flex min-w-0 items-center gap-2.5 font-extrabold tracking-tight text-ink"),
-		Span(Class("grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-lg font-black text-ink"), Text("T")),
-		Span(Attr("data-admin-navigation-target", "brandLabel"), Class("text-xl"), Text("Travelando")),
+		brandIcon(),
+		Span(Attr("data-admin-navigation-target", "brandLabel"), Class("brand-wordmark text-xl text-brand"), Text("Travelando")),
 	)
 }
 
@@ -32,7 +36,7 @@ func SiteHeader() Node {
 		Div(Class("mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8 sm:py-4"),
 			Brand(),
 			Nav(Attr("aria-label", "Navegación principal"), Class("flex shrink-0 items-center gap-2 text-sm font-bold"),
-				A(Href("/#buscar"), Class("inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand px-4 text-ink transition hover:bg-brand-dark hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
+				A(Href("/#buscar"), Class("inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand-dark px-4 text-white transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
 					lucide.Search(Class("size-4"), Attr("aria-hidden", "true")), Text("Explorar")),
 			),
 		),

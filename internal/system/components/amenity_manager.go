@@ -98,7 +98,7 @@ func amenityTypeRow(basePath string, amenityType models.AmenityType, state *Amen
 		Td(Class("px-4 py-3"),
 			Div(Class("flex items-center justify-end gap-2"),
 				Button(Type("submit"), Attr("form", formID), Class("inline-flex min-h-10 items-center rounded-lg border border-line px-3 text-sm font-bold text-ink hover:border-brand"), Text("Guardar")),
-				Form(Method("post"), Action(basePath+"/"+id+"/delete"), Attr("onsubmit", "return confirm('¿Eliminar amenidad y sus valores de todas las cabañas?')"),
+				Form(Method("post"), Action(basePath+"/"+id+"/delete"), Attr("data-confirmation-message", "¿Eliminar amenidad y sus valores de todas las cabañas?"),
 					Button(Type("submit"), Class("inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-bold text-brand-dark hover:bg-cream"), Text("Eliminar")),
 				),
 			),
