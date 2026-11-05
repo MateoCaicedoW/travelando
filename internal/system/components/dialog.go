@@ -29,7 +29,7 @@ func CustomDialog(p DialogProps) Node {
 			Data("modal-closer", "true"),
 		),
 		Div(
-			Class("relative z-10 min-h-[calc(100dvh-1rem)] w-full max-w-5xl rounded-2xl border border-line bg-white shadow-xl modal-content sm:min-h-0"),
+			Class("relative z-10 max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-line bg-white shadow-xl modal-content sm:max-h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-2.5rem)]"),
 			Role("dialog"),
 			Attr("aria-modal", "true"),
 			Attr("aria-label", label),

@@ -44,6 +44,13 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 	}
 	query := cabinSearchSelect + `
 		WHERE c.active = 1 AND o.active = 1 AND o.whatsapp <> ''
+		  AND `
+	if input.StayType == models.StayDayUse {
+		query += `c.accepts_day_use = 1`
+	} else {
+		query += `c.accepts_overnight = 1`
+	}
+	query += `
 		  AND NOT EXISTS (
 			SELECT 1 FROM inquiries i
 			WHERE i.cabin_id = c.id AND i.status = 'reserved'

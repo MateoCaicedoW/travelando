@@ -68,6 +68,7 @@ func cabinFromRequest(r *http.Request, id int64, requireOwner bool, ownerID int6
 	cabin := models.Cabin{
 		ID: id, Name: r.FormValue("name"), Description: r.FormValue("description"), Location: r.FormValue("location"),
 		LocationURL: r.FormValue("location_url"), CoverImage: r.FormValue("cover_image"),
+		AcceptsDayUse: r.FormValue("accepts_day_use") == "on", AcceptsOvernight: r.FormValue("accepts_overnight") == "on",
 		DayStart: r.FormValue("day_start"), DayEnd: r.FormValue("day_end"), CheckIn: r.FormValue("check_in"), CheckOut: r.FormValue("check_out"),
 	}
 	if requireOwner {

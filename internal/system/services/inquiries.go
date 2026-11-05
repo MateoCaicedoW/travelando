@@ -76,6 +76,9 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	if inquiry.StayType == models.StayDayUse && !cabin.AcceptsDayUse || inquiry.StayType == models.StayOvernight && !cabin.AcceptsOvernight {
+		return "", ErrStayTypeNotAccepted
+	}
 	quote, err := Quote(QuoteInput{
 		Type: inquiry.StayType, StartDate: from, EndDate: to, Guests: inquiry.Guests,
 		IncludedGuests: cabin.IncludedGuests, ExtraGuestPrice: cabin.ExtraGuestPrice,

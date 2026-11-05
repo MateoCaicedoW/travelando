@@ -53,6 +53,10 @@ func AddBlock(w http.ResponseWriter, r *http.Request) {
 		helpers.Redirect(w, r, "/admin/cabins/"+strconv.FormatInt(id, 10)+"/edit")
 		return
 	}
+	if helpers.IsHTMX(r) {
+		refreshCabinEdit(w, r, id)
+		return
+	}
 	helpers.Redirect(w, r, "/admin/cabins/"+strconv.FormatInt(id, 10)+"/edit")
 }
 

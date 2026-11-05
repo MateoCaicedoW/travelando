@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"travelando/internal/system"
+	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 
@@ -32,6 +33,34 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	if helpers.IsHTMX(r) {
+		renderCabinEditDialog(w, data, nil, http.StatusOK)
+		return
+	}
+	renderCabinEditPage(w, r, data, nil, http.StatusOK)
+}
+
+func renderCabinEditDialog(w http.ResponseWriter, data cabinEditData, state *cabinFormState, status int) {
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
+	dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state)})
+	if err := dialog.Render(w); err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+	}
+}
+
+func refreshCabinEdit(w http.ResponseWriter, r *http.Request, id int64) {
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, id)
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
 	renderCabinEditPage(w, r, data, nil, http.StatusOK)
 }
 
@@ -40,7 +69,7 @@ func renderCabinEditPage(w http.ResponseWriter, r *http.Request, data cabinEditD
 		w.WriteHeader(status)
 	}
 	if helpers.IsHTMX(r) {
-		if err := editEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state).Render(w); err != nil {
+		if err := editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return

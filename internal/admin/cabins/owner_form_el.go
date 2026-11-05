@@ -11,5 +11,5 @@ import (
 
 func OwnerCabinFormEl(cabin models.Cabin, fieldErrors validate.Errors, values url.Values, editing bool, page int) Node {
 	state := &cabinFormState{Errors: fieldErrors, Values: values}
-	return cabinSharedFormEl(cabin, nil, nil, nil, state, editing, true, page)
+	return cabinSharedFormEl(cabin, nil, nil, nil, state, editing, true, page, true)
 }

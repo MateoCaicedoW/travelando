@@ -30,7 +30,7 @@ func New(w http.ResponseWriter, r *http.Request) {
 }
 
 func defaultNewCabin() models.Cabin {
-	return models.Cabin{Active: true, IncludedGuests: 2, DayStart: "09:00", DayEnd: "18:00", CheckIn: "15:00", CheckOut: "12:00"}
+	return models.Cabin{Active: true, IncludedGuests: 2, AcceptsDayUse: true, AcceptsOvernight: true, DayStart: "09:00", DayEnd: "18:00", CheckIn: "15:00", CheckOut: "12:00"}
 }
 
 func DefaultNewCabin() models.Cabin { return defaultNewCabin() }

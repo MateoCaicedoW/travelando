@@ -70,9 +70,13 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	form := saveErrorEl(cabin, blocks, bookings, owners, state)
+	if helpers.IsHTMX(r) && cabin.ID > 0 {
+		form = editModalEl(cabin, blocks, bookings, owners, state)
+	}
 	w.WriteHeader(status)
 	if helpers.IsHTMX(r) {
-		if err := saveErrorEl(cabin, blocks, bookings, owners, state).Render(w); err != nil {
+		if err := form.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return
@@ -81,7 +85,7 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 	if cabin.ID > 0 {
 		title = "Editar cabaña | Travelando"
 	}
-	page := system.Layout{Title: title, Portal: system.PortalAdmin, Yield: saveErrorEl(cabin, blocks, bookings, owners, state)}.New(r)
+	page := system.Layout{Title: title, Portal: system.PortalAdmin, Yield: form}.New(r)
 	if err := page.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

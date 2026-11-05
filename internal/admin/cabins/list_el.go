@@ -58,7 +58,7 @@ func cabinListResultsEl(page services.CabinPageResult, search string) Node {
 					P(Class("mt-3 text-sm text-muted"), Text(ownerContact)),
 					P(Class("mt-1 text-sm text-muted"), Text(strconv.Itoa(cabin.IncludedGuests)+" incluidos · $"+helpers.FormatCOP(cabin.ExtraGuestPrice)+" por adicional/reserva")),
 					P(Class("mt-2 font-bold text-ink"), Text("$"+helpers.FormatCOP(cabin.DayPrice)+" pasadía · $"+helpers.FormatCOP(cabin.NightPrice)+" / noche")),
-					A(Href("/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/edit"), Class("mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-bold text-ink hover:border-brand hover:text-brand-dark"), lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña y calendario")),
+					A(Href("/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/edit"), Attr("hx-get", "/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/edit"), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Class("mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-bold text-ink hover:border-brand hover:text-brand-dark"), lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña y calendario")),
 				),
 			)
 		})),

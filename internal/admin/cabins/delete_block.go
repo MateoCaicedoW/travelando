@@ -28,5 +28,9 @@ func DeleteBlock(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if helpers.IsHTMX(r) {
+		refreshCabinEdit(w, r, id)
+		return
+	}
 	helpers.Redirect(w, r, "/admin/cabins/"+strconv.FormatInt(id, 10)+"/edit")
 }

@@ -16,7 +16,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, state *cabinFormState, editing, ownerMode bool, ownerPage int) Node {
+func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, state *cabinFormState, editing, ownerMode bool, ownerPage int, dialogMode bool) Node {
 	title := "Nueva cabaña"
 	if editing {
 		title = "Editar cabaña"
@@ -47,6 +47,12 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 		}
 		return fallback
 	}
+	fieldChecked := func(key string, fallback bool) bool {
+		if values != nil {
+			return values.Get(key) == "on"
+		}
+		return fallback
+	}
 	ownerIDValue := fieldValue("owner_id", strconv.FormatInt(cabin.OwnerID, 10))
 	ownerOptions := make([]components.SearchableOption, len(owners))
 	for i, owner := range owners {
@@ -67,20 +73,16 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 		descriptionClass += " border-red-300 focus:ring-red-200"
 	}
 	return Div(ID("cabin-page"),
-		If(editing, Class("mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-12")),
-		If(!editing, Class("mx-auto w-full max-w-5xl p-4 sm:p-7")),
-		If(editing && !ownerMode, A(Href("/admin/cabins"), Class("inline-flex items-center gap-2 text-sm font-bold text-brand-dark hover:underline"), lucide.ArrowLeft(Class("size-4"), Attr("aria-hidden", "true")), Text("Volver a cabañas"))),
-		If(!editing && !ownerMode,
+		If(editing && !dialogMode, Class("mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-12")),
+		If(dialogMode, Class("w-full p-4 sm:p-6")),
+		If(editing && !dialogMode && !ownerMode, A(Href("/admin/cabins"), Class("inline-flex items-center gap-2 text-sm font-bold text-brand-dark hover:underline"), lucide.ArrowLeft(Class("size-4"), Attr("aria-hidden", "true")), Text("Volver a cabañas"))),
+		If(!editing && !ownerMode || dialogMode,
 			Div(Class("flex items-start justify-between gap-4"),
 				components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
 				Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 			),
 		),
-		If(ownerMode, Div(Class("mb-4 flex items-start justify-between gap-4"),
-			components.PageHeading(title, "Datos de la cabaña y tarifas en pesos colombianos (COP)."),
-			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
-		)),
-		If(editing && !ownerMode, Div(Class("mt-6"), components.PageHeading(title, "Datos de la cabaña y tarifas en pesos colombianos (COP)."))),
+		If(editing && !dialogMode, Div(Class("mt-6"), components.PageHeading(title, "Datos de la cabaña y tarifas en pesos colombianos (COP)."))),
 		Form(Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"), If(editing && !ownerMode, Class("rounded-2xl border border-line bg-white p-5 sm:p-7")),
 			Div(Class("space-y-7"),
 				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
@@ -110,28 +112,47 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 				Div(Class("rounded-2xl border border-line p-4 sm:p-6"),
 					H2(Class("text-base font-extrabold text-ink"), Text("Tarifas y horarios")),
 					P(Class("mt-1 text-sm text-muted"), Text("El cargo por huésped adicional se cobra una sola vez por reserva.")),
-					Div(Class("mt-4 max-w-sm"), components.NumberFieldWithError("extra_guest_price", "extra_guest_price", "Cargo por huésped adicional (COP)", fieldValue("extra_guest_price", strconv.FormatInt(cabin.ExtraGuestPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("extra_guest_price"))),
-					Div(Class("mt-4 grid gap-6 lg:grid-cols-2"),
-						Div(Class("grid gap-x-4 gap-y-4 sm:grid-cols-2"),
-							H3(Class("sm:col-span-2 text-sm font-bold text-muted"), Text("Pasadía")),
-							components.NumberFieldWithError("day_price", "day_price", "Precio de pasadía (COP)", fieldValue("day_price", strconv.FormatInt(cabin.DayPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("day_price")),
-							components.TimeFieldWithError("day_start", "day_start", "Hora de inicio", fieldValue("day_start", cabin.DayStart), fieldErrors.ErrorStringFor("day_start")),
-							components.TimeFieldWithError("day_end", "day_end", "Hora de fin", fieldValue("day_end", cabin.DayEnd), fieldErrors.ErrorStringFor("day_end")),
+					Div(Class("mt-5 grid items-start gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,2fr)]"),
+						components.NumberFieldWithError("extra_guest_price", "extra_guest_price", "Cargo por huésped adicional (COP)", fieldValue("extra_guest_price", strconv.FormatInt(cabin.ExtraGuestPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("extra_guest_price")),
+						Div(Class("space-y-1"),
+							P(Class("text-sm font-bold text-ink"), Text("Modalidades que acepta esta cabaña")),
+							Div(Class("flex flex-wrap gap-x-5 gap-y-1"),
+								Label(Class("inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-ink"),
+									Input(Type("checkbox"), Name("accepts_day_use"), Value("on"), If(fieldChecked("accepts_day_use", cabin.AcceptsDayUse), Checked()), Class("size-4 accent-brand")),
+									Text("Acepta pasadías"),
+								),
+								Label(Class("inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-ink"),
+									Input(Type("checkbox"), Name("accepts_overnight"), Value("on"), If(fieldChecked("accepts_overnight", cabin.AcceptsOvernight), Checked()), Class("size-4 accent-brand")),
+									Text("Acepta estadías"),
+								),
+							),
+							P(Class("text-xs text-muted"), Text("Si desmarcas ambas, la cabaña no aparecerá en búsquedas ni recibirá solicitudes nuevas.")),
 						),
-						Div(Class("grid gap-x-4 gap-y-4 sm:grid-cols-2"),
-							H3(Class("sm:col-span-2 text-sm font-bold text-muted"), Text("Estadía")),
-							components.NumberFieldWithError("night_price", "night_price", "Precio por noche (COP)", fieldValue("night_price", strconv.FormatInt(cabin.NightPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("night_price")),
-							components.TimeFieldWithError("check_in", "check_in", "Hora de entrada", fieldValue("check_in", cabin.CheckIn), fieldErrors.ErrorStringFor("check_in")),
-							components.TimeFieldWithError("check_out", "check_out", "Hora de salida", fieldValue("check_out", cabin.CheckOut), fieldErrors.ErrorStringFor("check_out")),
+					),
+					Div(Class("mt-5 grid gap-4 lg:grid-cols-2"),
+						Div(Class("rounded-xl bg-cream/50 p-4 sm:p-5"),
+							H3(Class("mb-4 text-sm font-extrabold text-ink"), Text("Pasadía")),
+							Div(Class("grid gap-x-4 gap-y-4 sm:grid-cols-2"),
+								Div(Class("sm:col-span-2"), components.NumberFieldWithError("day_price", "day_price", "Precio de pasadía (COP)", fieldValue("day_price", strconv.FormatInt(cabin.DayPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("day_price"))),
+								components.TimeFieldWithError("day_start", "day_start", "Hora de inicio", fieldValue("day_start", cabin.DayStart), fieldErrors.ErrorStringFor("day_start")),
+								components.TimeFieldWithError("day_end", "day_end", "Hora de fin", fieldValue("day_end", cabin.DayEnd), fieldErrors.ErrorStringFor("day_end")),
+							),
+						),
+						Div(Class("rounded-xl bg-cream/50 p-4 sm:p-5"),
+							H3(Class("mb-4 text-sm font-extrabold text-ink"), Text("Estadía")),
+							Div(Class("grid gap-x-4 gap-y-4 sm:grid-cols-2"),
+								Div(Class("sm:col-span-2"), components.NumberFieldWithError("night_price", "night_price", "Precio por noche (COP)", fieldValue("night_price", strconv.FormatInt(cabin.NightPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("night_price"))),
+								components.TimeFieldWithError("check_in", "check_in", "Hora de entrada", fieldValue("check_in", cabin.CheckIn), fieldErrors.ErrorStringFor("check_in")),
+								components.TimeFieldWithError("check_out", "check_out", "Hora de salida", fieldValue("check_out", cabin.CheckOut), fieldErrors.ErrorStringFor("check_out")),
+							),
 						),
 					),
 				),
 			),
 			Div(Class("mt-6 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:flex-wrap"),
 				Button(Type("submit"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white transition hover:brightness-90 sm:w-auto"), lucide.Save(Class("size-4"), Attr("aria-hidden", "true")), Text("Guardar cabaña")),
-				If(!editing && !ownerMode, Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
-				If(ownerMode, Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
-				If(editing && !ownerMode, A(Href("/admin/cabins"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
+				If(dialogMode, Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
+				If(editing && !dialogMode, A(Href("/admin/cabins"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar"))),
 			),
 		),
 		If(editing && !ownerMode, Div(Class("mt-6 rounded-2xl border border-line bg-white p-5 sm:p-7"),

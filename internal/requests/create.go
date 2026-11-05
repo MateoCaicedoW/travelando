@@ -41,6 +41,8 @@ func Create(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			renderInquiryForm(w, r, nil, http.StatusConflict)
+		case errors.Is(err, services.ErrStayTypeNotAccepted):
+			renderInquiryForm(w, r, fieldError("stay_type", "Esta cabaña no acepta esa modalidad."), http.StatusUnprocessableEntity)
 		case errors.Is(err, services.ErrNotFound):
 			http.NotFound(w, r)
 		default:
