@@ -17,9 +17,11 @@ func TestSearchableSelectRendersAccessibleSelectedValueAndError(t *testing.T) {
 	}
 	html := output.String()
 	for _, want := range []string{
+		`data-controller="searchable-select"`,
 		`<label for="owner_id"`,
 		`id="owner_id"`,
 		`role="combobox"`,
+		`data-action="input-&gt;searchable-select#clearValidity focus-&gt;searchable-select#selectValue"`,
 		`aria-controls="owner_id-listbox"`,
 		`aria-invalid="true"`,
 		`aria-describedby="owner_id-error"`,

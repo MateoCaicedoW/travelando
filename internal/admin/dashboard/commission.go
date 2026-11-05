@@ -28,7 +28,7 @@ func UpdateCommission(w http.ResponseWriter, r *http.Request) {
 	}
 	set := services.ServiceSetFromCtx(r.Context())
 	svc := set.Commissions
-	if svc == nil || set.Inquiries == nil {
+	if svc == nil || set.Inquiries == nil || set.Deposits == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
@@ -44,12 +44,12 @@ func UpdateCommission(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		data, err := loadDashboardData(set.Inquiries, set.Commissions)
+		data, err := loadDashboardData(set.Inquiries, set.Commissions, set.Deposits)
 		if err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 			return
 		}
-		renderDashboard(w, r, data, state, http.StatusUnprocessableEntity)
+		renderDashboard(w, r, data, state, nil, http.StatusUnprocessableEntity)
 		return
 	}
 	rate, err := parseCommissionRate(r.FormValue("commission"))

@@ -16,7 +16,17 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
-	data := searchPageData(r, services.ServiceSetFromCtx(r.Context()).Availability)
+	set := services.ServiceSetFromCtx(r.Context())
+	data := searchPageData(r, set.Availability)
+	if len(data.Cabins) > 0 {
+		if set.Deposits == nil {
+			data.Error = "deposit service unavailable"
+		} else if deposit, err := set.Deposits.DepositAmount(); err != nil {
+			data.Error = err.Error()
+		} else {
+			data.DepositCOP = deposit
+		}
+	}
 	if data.Error != "" {
 		slog.Error("searching available cabins", "error", data.Error)
 		if err := helpers.SetFlash(r, helpers.FlashError, "No se pudo cargar la disponibilidad. Intenta de nuevo."); err != nil {

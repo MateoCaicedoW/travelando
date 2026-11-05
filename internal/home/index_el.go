@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"travelando/internal/system/components"
+	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 
 	. "maragu.dev/gomponents"
@@ -64,7 +65,16 @@ func IndexEl(data PageData) Node {
 			)),
 			If(data.DidSearch && !data.SearchErrors.HasAny() && data.Error == "" && len(data.Cabins) > 0, Div(Class("grid gap-5 md:grid-cols-2 xl:grid-cols-3"),
 				Map(data.Cabins, func(cabin models.Cabin) Node {
-					return components.CabinCard(cabin, priceFor(cabin, data.StayType, data.DateFrom, data.DateTo, data.Guests), data.StayType, resultsLink(cabin.ID, data))
+					stay := "Pasadía"
+					if data.StayType == models.StayOvernight {
+						stay = "Estadía"
+					}
+					return components.CabinCard(cabin, components.CabinCardOptions{
+						Badge:   Span(Class("shrink-0 rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Text(stay)),
+						Price:   homeCabinCardPrice(cabin, data),
+						Action:  A(Href(resultsLink(cabin.ID, data)), Target("_blank"), Rel("noopener noreferrer"), Class("inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg bg-brand-dark px-4 py-2 text-sm font-bold text-white transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), Text("Ver cabaña")),
+						Compact: true,
+					})
 				}),
 			)),
 			If(data.DidSearch && !data.SearchErrors.HasAny() && data.Error == "" && len(data.Cabins) == 0, Div(Class("rounded-2xl border border-dashed border-line bg-cream/60 px-6 py-12 text-center"),
@@ -82,6 +92,50 @@ func IndexEl(data PageData) Node {
 				HowItWorksStep("03", "Habla con el contacto", "Continúa por WhatsApp para cerrar el plan."),
 			)),
 		),
+	)
+}
+
+func homeCabinCardPrice(cabin models.Cabin, data PageData) Node {
+	prices := make([]Node, 0, 2)
+	if cabin.AcceptsDayUse {
+		price, valid := priceFor(cabin, models.StayDayUse, data.DateFrom, "", data.Guests, data.DepositCOP)
+		unit := "Incluye depósito"
+		if !valid {
+			unit = "No disponible"
+		}
+		prices = append(prices, homeCabinPriceTile("Pasadía", unit, price, valid))
+	}
+	if cabin.AcceptsOvernight {
+		dateTo := ""
+		unit := "1 noche · incluye depósito"
+		if data.StayType == models.StayOvernight {
+			dateTo = data.DateTo
+			if dateTo != "" {
+				unit = "Estadía completa · incluye depósito"
+			}
+		}
+		price, valid := priceFor(cabin, models.StayOvernight, data.DateFrom, dateTo, data.Guests, data.DepositCOP)
+		if !valid {
+			unit = "No disponible"
+		}
+		prices = append(prices, homeCabinPriceTile("Estadía", unit, price, valid))
+	}
+	class := "grid grid-cols-1 gap-2"
+	if len(prices) == 2 {
+		class = "grid grid-cols-2 gap-2 sm:gap-3"
+	}
+	return Div(Class(class), Group(prices))
+}
+
+func homeCabinPriceTile(label, unit string, price int64, valid bool) Node {
+	priceLabel := "$" + helpers.FormatCOP(price)
+	if !valid {
+		priceLabel = "—"
+	}
+	return Div(Class("min-w-0 rounded-xl bg-cream/70 px-3 py-2.5"),
+		P(Class("text-xs font-bold text-muted"), Text(label)),
+		P(Class("mt-1 break-words text-base font-extrabold leading-tight text-ink sm:text-lg"), Text(priceLabel)),
+		P(Class("mt-0.5 text-[11px] font-medium text-muted"), Text(unit)),
 	)
 }
 

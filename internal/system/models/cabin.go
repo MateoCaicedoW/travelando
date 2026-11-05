@@ -10,7 +10,6 @@ type Cabin struct {
 	Description      string
 	Location         string
 	LocationURL      string
-	CoverImage       string
 	IncludedGuests   int
 	ExtraGuestPrice  int64
 	DayPrice         int64
@@ -23,7 +22,13 @@ type Cabin struct {
 	CheckOut         string
 	CleaningHours    int
 	Active           bool
+	Photos           []CabinPhoto
 	Amenities        []CabinAmenity
+}
+
+type CabinPhoto struct {
+	URL      string
+	Position int
 }
 
 type CabinBlock struct {

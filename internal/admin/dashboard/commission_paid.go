@@ -22,7 +22,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set := services.ServiceSetFromCtx(r.Context())
-	if set.Inquiries == nil || set.Commissions == nil {
+	if set.Inquiries == nil || set.Commissions == nil || set.Deposits == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
@@ -39,7 +39,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	data, err := loadDashboardData(set.Inquiries, set.Commissions)
+	data, err := loadDashboardData(set.Inquiries, set.Commissions, set.Deposits)
 	if err != nil {
 		slog.Error("reloading dashboard after commission payment", "error", err)
 		server.Error(w, err, http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	response := Group{
-		dashboardEl(data.Inquiries, data.CommissionBP, nil, requestedCabinPage(r)),
+		dashboardEl(data.Inquiries, data.CommissionBP, data.DepositCOP, nil, nil, requestedCabinPage(r)),
 		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Saldo de comisión marcado como pagado.", helpers.FlashSuccess)),
 	}
 	if err := response.Render(w); err != nil {

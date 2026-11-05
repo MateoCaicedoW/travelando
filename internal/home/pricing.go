@@ -7,7 +7,7 @@ import (
 	"travelando/internal/system/services"
 )
 
-func priceFor(cabin models.Cabin, stayType models.StayType, dateFrom, dateTo string, guests int) int64 {
+func priceFor(cabin models.Cabin, stayType models.StayType, dateFrom, dateTo string, guests int, depositCOP int64) (int64, bool) {
 	from, err := time.Parse(time.DateOnly, dateFrom)
 	if err != nil {
 		from = time.Now()
@@ -29,9 +29,11 @@ func priceFor(cabin models.Cabin, stayType models.StayType, dateFrom, dateTo str
 	})
 	if err != nil {
 		if stayType == models.StayDayUse {
-			return cabin.DayPrice
+			total = cabin.DayPrice
+		} else {
+			total = cabin.NightPrice
 		}
-		return cabin.NightPrice
 	}
-	return total
+	total, err = services.AddDepositToQuote(total, depositCOP)
+	return total, err == nil
 }

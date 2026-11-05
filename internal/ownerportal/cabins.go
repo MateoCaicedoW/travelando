@@ -304,42 +304,13 @@ func ownerCabinCardEl(cabin models.Cabin, page int) Node {
 		status, statusStyle = "Inactiva", "bg-cream text-muted"
 		statusDot = "bg-muted"
 	}
-	image := Div(Class("grid aspect-[16/10] place-items-center bg-cream text-muted"),
-		lucide.Image(Class("size-8"), Attr("aria-hidden", "true")),
-		Span(Class("sr-only"), Text("Sin foto")),
-	)
-	if cabin.CoverImage != "" {
-		image = Img(Src(cabin.CoverImage), Alt("Foto de "+cabin.Name), Attr("loading", "lazy"), Class("aspect-[16/10] w-full object-cover"))
-	}
-	return Article(Class("overflow-hidden rounded-2xl border border-line bg-white transition hover:border-brand/60"),
-		Div(Class("relative overflow-hidden bg-cream"),
-			image,
-			Span(Class("absolute right-3 top-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold shadow-sm "+statusStyle),
-				Span(Attr("aria-hidden", "true"), Class("size-2 rounded-full "+statusDot)),
-				Text(status),
-			),
-		),
-		Div(Class("p-5"),
-			Div(Class("flex items-start gap-3"),
-				Div(Class("min-w-0 flex-1"),
-					H2(Class("truncate text-xl font-extrabold text-ink"), Text(cabin.Name)),
-					P(Class("mt-1 flex items-center gap-1.5 text-sm font-semibold text-muted"),
-						lucide.MapPin(Class("size-4 shrink-0 text-brand-dark"), Attr("aria-hidden", "true")), Text(cabin.Location)),
-				),
-			),
-			If(cabin.Description != "", P(Class("mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-muted"), Text(cabin.Description))),
-			Div(Class("mt-4 grid grid-cols-2 gap-3 border-y border-line py-3"),
-				Div(P(Class("text-xs font-semibold text-muted"), Text("Pasadía")), P(Class("mt-1 text-lg font-extrabold text-ink"), Text("$"+helpers.FormatCOP(cabin.DayPrice)))),
-				Div(P(Class("text-xs font-semibold text-muted"), Text("Por noche")), P(Class("mt-1 text-lg font-extrabold text-ink"), Text("$"+helpers.FormatCOP(cabin.NightPrice)))),
-			),
-			Div(Class("flex flex-wrap items-center justify-between gap-2 py-3 text-xs font-semibold text-muted"),
-				Span(Class("inline-flex items-center gap-1.5"), lucide.Users(Class("size-4"), Attr("aria-hidden", "true")), Textf("%d huéspedes incluidos", cabin.IncludedGuests)),
-				If(cabin.ExtraGuestPrice > 0, Span(Text("+$"+helpers.FormatCOP(cabin.ExtraGuestPrice)+" por adicional"))),
-			),
-			Button(Type("button"), Attr("hx-get", ownerEditCabinURL(cabin.ID, page)), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Class("inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-bold text-brand-dark transition hover:border-brand hover:bg-cream focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
-				lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña")),
-		),
-	)
+	return components.CabinCard(cabin, components.CabinCardOptions{
+		Badge: Span(Class("inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold shadow-sm "+statusStyle),
+			Span(Attr("aria-hidden", "true"), Class("size-2 rounded-full "+statusDot)), Text(status)),
+		Price: components.CabinPrices(cabin),
+		Action: Button(Type("button"), Attr("hx-get", ownerEditCabinURL(cabin.ID, page)), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Class("inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-bold text-brand-dark transition hover:border-brand hover:bg-cream focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
+			lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña")),
+	})
 }
 
 func ownerCabinPageParam(r *http.Request) int {

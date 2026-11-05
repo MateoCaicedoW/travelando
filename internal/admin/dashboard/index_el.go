@@ -13,12 +13,18 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func dashboardEl(inquiries []models.Inquiry, commissionBP int, commissionState *commissionFormState, cabinPage int) Node {
+func dashboardEl(inquiries []models.Inquiry, commissionBP int, depositCOP int64, commissionState *commissionFormState, depositState *depositFormState, cabinPage int) Node {
 	commissionValue := helpers.FormatCommissionRate(commissionBP)
 	commissionError := ""
 	if commissionState != nil {
 		commissionValue = commissionState.Value
 		commissionError = commissionState.Error
+	}
+	depositValue := strconv.FormatInt(depositCOP, 10)
+	depositError := ""
+	if depositState != nil {
+		depositValue = depositState.Value
+		depositError = depositState.Error
 	}
 	pending, reserved := 0, 0
 	commissionPaid, commissionDue, commissionCredit := int64(0), int64(0), int64(0)
@@ -77,6 +83,11 @@ func dashboardEl(inquiries []models.Inquiry, commissionBP int, commissionState *
 				H2(Class("mt-1 text-lg font-extrabold text-ink"), Text("Comisión global")),
 				P(Class("mt-2 text-sm text-muted"), Text("Una misma tasa para todas las reservas nuevas.")),
 				commissionFormEl(commissionValue, commissionError),
+				Div(Class("mt-6 border-t border-line pt-5"),
+					H2(Class("text-lg font-extrabold text-ink"), Text("Depósito fijo")),
+					P(Class("mt-2 text-sm text-muted"), Text("Valor global en COP: se suma al estimado y se excluye de la comisión.")),
+					depositFormEl(depositValue, depositError),
+				),
 			),
 		),
 	)
@@ -147,7 +158,11 @@ func inventoryEl(page services.CabinPageResult) Node {
 					),
 					P(Class("mt-1 text-xs text-muted"), Text(c.Location+" · "+ownerContact)),
 					P(Class("mt-1 text-xs text-muted"), Text(ownerPhone+strconv.Itoa(c.IncludedGuests)+" incluidos · $"+helpers.FormatCOP(c.ExtraGuestPrice)+" por adicional/reserva")),
-					P(Class("mt-1 text-xs font-semibold text-ink"), Text("Pasadía $"+helpers.FormatCOP(c.DayPrice)+" · Noche $"+helpers.FormatCOP(c.NightPrice))),
+					P(Class("mt-1 text-xs font-semibold text-ink"),
+						If(c.AcceptsDayUse, Text("Pasadía $"+helpers.FormatCOP(c.DayPrice))),
+						If(c.AcceptsDayUse && c.AcceptsOvernight, Text(" · ")),
+						If(c.AcceptsOvernight, Text("Noche $"+helpers.FormatCOP(c.NightPrice))),
+					),
 				),
 				Span(Class("shrink-0 text-xs font-bold text-brand-dark group-hover:underline"), Text("Editar")),
 			)

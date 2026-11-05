@@ -14,12 +14,6 @@ import (
 )
 
 func CabinEl(cabin models.Cabin, data PageData) Node {
-	image := Div(Class("grid aspect-[4/3] place-items-center rounded-2xl bg-cream sm:aspect-[5/3]"),
-		P(Class("font-bold text-muted"), Text("Refugio natural")),
-	)
-	if cabin.CoverImage != "" {
-		image = Img(Src(cabin.CoverImage), Alt("Vista de "+cabin.Name), Class("aspect-[4/3] w-full rounded-2xl object-cover sm:aspect-[5/3]"))
-	}
 	stayType := "Pasadía"
 	selectedStayType := data.StayType
 	if selectedStayType == models.StayDayUse && !cabin.AcceptsDayUse && cabin.AcceptsOvernight || selectedStayType == models.StayOvernight && !cabin.AcceptsOvernight && cabin.AcceptsDayUse {
@@ -32,7 +26,11 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 	if selectedStayType == models.StayOvernight {
 		stayType = "Estadía"
 	}
-	estimated := priceFor(cabin, selectedStayType, data.DateFrom, data.DateTo, data.Guests)
+	estimated, estimateValid := priceFor(cabin, selectedStayType, data.DateFrom, data.DateTo, data.Guests, data.DepositCOP)
+	estimatedLabel := "$" + helpers.FormatCOP(estimated)
+	if !estimateValid {
+		estimatedLabel = "—"
+	}
 	priceUnit := "COP · pasadía"
 	if selectedStayType == models.StayOvernight {
 		priceUnit = "COP / noche"
@@ -57,11 +55,15 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 	requestFrom := requestValue("date_from", data.DateFrom)
 	requestTo := requestValue("date_to", data.DateTo)
 	requestGuests := requestValue("guests", strconv.Itoa(data.Guests))
+	depositValue, depositDetail := "Sin depósito", "No se requiere depósito."
+	if data.DepositCOP > 0 {
+		depositValue, depositDetail = "$"+helpers.FormatCOP(data.DepositCOP)+" COP", "Monto fijo por reserva; incluido en el estimado."
+	}
 	return Div(ID("cabin-detail"), Class("mx-auto w-full max-w-7xl px-5 pt-8 pb-32 sm:px-8 sm:py-12"),
 		A(Href("/"), Class("text-sm font-bold text-brand-dark hover:underline"), Text("← Volver a buscar")),
 		Div(Class("mt-6 grid items-start gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12"),
 			Div(
-				image,
+				components.CabinPhotoCarousel(cabin.Name, cabin.Photos),
 				Div(Class("mt-7 flex flex-wrap items-center justify-between gap-3"),
 					Div(
 						P(Class("text-xs font-extrabold uppercase tracking-[0.17em] text-brand-dark"), Text(cabin.Location)),
@@ -87,10 +89,11 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 						)
 					})),
 				)),
-				Div(Class("mt-7 grid gap-3 sm:grid-cols-3"),
+				Div(Class("mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"),
 					If(cabin.AcceptsDayUse, DetailItem("Pasadía", "$"+helpers.FormatCOP(cabin.DayPrice)+" COP", cabin.DayStart+" a "+cabin.DayEnd)),
 					If(cabin.AcceptsOvernight, DetailItem("Estadía", "$"+helpers.FormatCOP(cabin.NightPrice)+" COP", "Por noche · entrada "+cabin.CheckIn+" · salida "+cabin.CheckOut)),
 					DetailItem("Huésped adicional", "$"+helpers.FormatCOP(cabin.ExtraGuestPrice)+" COP", "Por reserva"),
+					DetailItem("Depósito", depositValue, depositDetail),
 				),
 				If(cabin.LocationURL != "", Div(Class("mt-6"),
 					A(Href(cabin.LocationURL), Target("_blank"), Rel("noopener noreferrer"), Class("inline-flex min-h-11 items-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-ink transition hover:border-brand hover:text-brand-dark"), Text("Ver ubicación en el mapa ↗")),
@@ -100,6 +103,7 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 				Attr("data-controller", "price-estimate"),
 				Attr("data-price-estimate-included-guests-value", strconv.Itoa(cabin.IncludedGuests)),
 				Attr("data-price-estimate-extra-guest-price-value", strconv.FormatInt(cabin.ExtraGuestPrice, 10)),
+				Attr("data-price-estimate-deposit-cop-value", strconv.FormatInt(data.DepositCOP, 10)),
 				Attr("data-price-estimate-day-price-value", strconv.FormatInt(cabin.DayPrice, 10)),
 				Attr("data-price-estimate-night-price-value", strconv.FormatInt(cabin.NightPrice, 10)),
 				P(Class("text-xs font-extrabold uppercase tracking-[0.16em] text-brand-dark"), Text("Consulta disponibilidad")),
@@ -130,7 +134,7 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 								Div(
 									P(Class("text-sm font-bold text-ink"), Text("Precio estimado · "), Span(Attr("data-price-estimate-target", "type"), Text(stayType))),
 									P(Class("mt-0.5 text-xl font-black text-ink sm:mt-1 sm:text-2xl"), Attr("aria-live", "polite"), Attr("aria-atomic", "true"),
-										Span(Attr("data-price-estimate-target", "amount"), Text("$"+helpers.FormatCOP(estimated))),
+										Span(Attr("data-price-estimate-target", "amount"), Text(estimatedLabel)),
 										Text(" "),
 										Span(Class("text-xs font-bold sm:text-sm"), Attr("data-price-estimate-target", "unit"), Text(priceUnit)),
 									),

@@ -60,7 +60,13 @@ func (s *cabinService) SearchCabinsPage(search string, page, pageSize int) (Cabi
 		}
 		result.Cabins = append(result.Cabins, cabin)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return CabinPageResult{}, err
+	}
+	if err := rows.Close(); err != nil {
+		return CabinPageResult{}, err
+	}
+	return result, attachCabinPhotos(db, result.Cabins)
 }
 
 func cabinSearchQuery(search string) (string, []any) {
@@ -88,6 +94,11 @@ func (s *cabinService) Cabin(id int64) (*models.Cabin, error) {
 	if err != nil {
 		return nil, err
 	}
+	photos, err := cabinPhotosFor(db, []int64{cabin.ID})
+	if err != nil {
+		return nil, err
+	}
+	cabin.Photos = photos[cabin.ID]
 	return &cabin, nil
 }
 
@@ -96,7 +107,6 @@ func validateCabin(cabin *models.Cabin) error {
 	cabin.Description = strings.TrimSpace(cabin.Description)
 	cabin.Location = strings.TrimSpace(cabin.Location)
 	cabin.LocationURL = strings.TrimSpace(cabin.LocationURL)
-	cabin.CoverImage = strings.TrimSpace(cabin.CoverImage)
 	if cabin.DayStart == "" {
 		cabin.DayStart = "09:00"
 	}
@@ -109,7 +119,7 @@ func validateCabin(cabin *models.Cabin) error {
 	if cabin.CheckOut == "" {
 		cabin.CheckOut = "12:00"
 	}
-	if cabin.Name == "" || len(cabin.Name) > 120 || len(cabin.Description) > 2000 || len(cabin.Location) > 200 || len(cabin.LocationURL) > 2048 || len(cabin.CoverImage) > 2048 || cabin.IncludedGuests < 1 || cabin.DayPrice < 0 || cabin.DayPrice > MaxAmountCOP || cabin.NightPrice < 0 || cabin.NightPrice > MaxAmountCOP || cabin.ExtraGuestPrice < 0 || cabin.ExtraGuestPrice > MaxAmountCOP || cabin.CleaningHours < 0 || cabin.CleaningHours > 24 || !helpers.ValidTime(cabin.DayStart) || !helpers.ValidTime(cabin.DayEnd) || !helpers.ValidTime(cabin.CheckIn) || !helpers.ValidTime(cabin.CheckOut) || !helpers.ValidTimeRange(cabin.DayStart, cabin.DayEnd) || !helpers.ValidExternalURL(cabin.LocationURL) || !helpers.ValidExternalURL(cabin.CoverImage) {
+	if cabin.Name == "" || len(cabin.Name) > 120 || len(cabin.Description) > 2000 || len(cabin.Location) > 200 || len(cabin.LocationURL) > 2048 || cabin.IncludedGuests < 1 || cabin.DayPrice < 0 || cabin.DayPrice > MaxAmountCOP || cabin.NightPrice < 0 || cabin.NightPrice > MaxAmountCOP || cabin.ExtraGuestPrice < 0 || cabin.ExtraGuestPrice > MaxAmountCOP || cabin.CleaningHours < 0 || cabin.CleaningHours > 24 || !helpers.ValidTime(cabin.DayStart) || !helpers.ValidTime(cabin.DayEnd) || !helpers.ValidTime(cabin.CheckIn) || !helpers.ValidTime(cabin.CheckOut) || !helpers.ValidTimeRange(cabin.DayStart, cabin.DayEnd) || !helpers.ValidExternalURL(cabin.LocationURL) {
 		return ErrInvalidInput
 	}
 	return nil
@@ -135,9 +145,9 @@ func (s *cabinService) CreateCabin(cabin *models.Cabin) error {
 	}
 	defer tx.Rollback()
 	result, err := tx.Exec(`
-		INSERT INTO cabins (name, description, location, location_url, cover_image, included_guests, extra_guest_price, day_price, night_price, accepts_day_use, accepts_overnight, day_start, day_end, check_in, check_out, cleaning_hours, active, owner_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID)
+		INSERT INTO cabins (name, description, location, location_url, included_guests, extra_guest_price, day_price, night_price, accepts_day_use, accepts_overnight, day_start, day_end, check_in, check_out, cleaning_hours, active, owner_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID)
 	if err != nil {
 		return err
 	}
@@ -187,9 +197,9 @@ func (s *cabinService) UpdateCabin(cabin *models.Cabin) error {
 	defer tx.Rollback()
 	result, err := tx.Exec(`
 		UPDATE cabins
-		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?, owner_id = ?
+		SET name = ?, description = ?, location = ?, location_url = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?, owner_id = ?
 		WHERE id = ?
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID, cabin.ID)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID, cabin.ID)
 	if err != nil {
 		return err
 	}
@@ -224,9 +234,9 @@ func (s *cabinService) UpdateCabinForOwner(ownerID int64, cabin *models.Cabin) e
 	defer tx.Rollback()
 	result, err := tx.Exec(`
 		UPDATE cabins
-		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?
+		SET name = ?, description = ?, location = ?, location_url = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?
 		WHERE id = ? AND owner_id = ? AND EXISTS (SELECT 1 FROM owners WHERE id = ? AND active = 1)
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.ID, ownerID, ownerID)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.ID, ownerID, ownerID)
 	if err != nil {
 		return err
 	}
@@ -329,6 +339,52 @@ func cabinAmenitiesFor(db *sql.DB, cabinIDs []int64) (map[int64][]models.CabinAm
 	return amenitiesByCabin, rows.Err()
 }
 
+func cabinPhotosFor(db *sql.DB, cabinIDs []int64) (map[int64][]models.CabinPhoto, error) {
+	photosByCabin := make(map[int64][]models.CabinPhoto, len(cabinIDs))
+	if len(cabinIDs) == 0 {
+		return photosByCabin, nil
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(cabinIDs)), ",")
+	args := make([]any, len(cabinIDs))
+	for i, id := range cabinIDs {
+		args[i] = id
+	}
+	rows, err := db.Query(`
+		SELECT cabin_id, photo_url, position
+		FROM cabin_photos
+		WHERE cabin_id IN (`+placeholders+`)
+		ORDER BY cabin_id, position, id
+	`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cabinID int64
+		var photo models.CabinPhoto
+		if err := rows.Scan(&cabinID, &photo.URL, &photo.Position); err != nil {
+			return nil, err
+		}
+		photosByCabin[cabinID] = append(photosByCabin[cabinID], photo)
+	}
+	return photosByCabin, rows.Err()
+}
+
+func attachCabinPhotos(db *sql.DB, cabins []models.Cabin) error {
+	cabinIDs := make([]int64, len(cabins))
+	for i := range cabins {
+		cabinIDs[i] = cabins[i].ID
+	}
+	photosByCabin, err := cabinPhotosFor(db, cabinIDs)
+	if err != nil {
+		return err
+	}
+	for i := range cabins {
+		cabins[i].Photos = photosByCabin[cabins[i].ID]
+	}
+	return nil
+}
+
 func validateCabinOwner(db *sql.DB, ownerID int64) error {
 	if ownerID < 1 {
 		return ErrInvalidInput
@@ -365,7 +421,7 @@ const cabinSearchSelect = `
 `
 
 const cabinSelectColumns = `
-	c.id, COALESCE(c.owner_id, 0), COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), COALESCE(o.active, 0), c.name, c.description, c.location, c.location_url, c.cover_image,
+	c.id, COALESCE(c.owner_id, 0), COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), COALESCE(o.active, 0), c.name, c.description, c.location, c.location_url,
     c.included_guests, c.extra_guest_price, c.day_price, c.night_price, c.accepts_day_use, c.accepts_overnight, c.day_start, c.day_end, c.check_in, c.check_out, c.cleaning_hours, c.active
 `
 
@@ -380,7 +436,7 @@ func scanCabin(row rowScanner) (models.Cabin, error) {
 }
 
 func cabinScanArgs(cabin *models.Cabin) []any {
-	return []any{&cabin.ID, &cabin.OwnerID, &cabin.OwnerName, &cabin.OwnerWhatsApp, &cabin.OwnerActive, &cabin.Name, &cabin.Description, &cabin.Location, &cabin.LocationURL, &cabin.CoverImage, &cabin.IncludedGuests, &cabin.ExtraGuestPrice, &cabin.DayPrice, &cabin.NightPrice, &cabin.AcceptsDayUse, &cabin.AcceptsOvernight, &cabin.DayStart, &cabin.DayEnd, &cabin.CheckIn, &cabin.CheckOut, &cabin.CleaningHours, &cabin.Active}
+	return []any{&cabin.ID, &cabin.OwnerID, &cabin.OwnerName, &cabin.OwnerWhatsApp, &cabin.OwnerActive, &cabin.Name, &cabin.Description, &cabin.Location, &cabin.LocationURL, &cabin.IncludedGuests, &cabin.ExtraGuestPrice, &cabin.DayPrice, &cabin.NightPrice, &cabin.AcceptsDayUse, &cabin.AcceptsOvernight, &cabin.DayStart, &cabin.DayEnd, &cabin.CheckIn, &cabin.CheckOut, &cabin.CleaningHours, &cabin.Active}
 }
 
 func requireUpdated(result sql.Result) error {

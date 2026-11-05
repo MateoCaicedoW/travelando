@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"travelando/internal/system/components"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 
 	lucide "github.com/eduardolat/gomponents-lucide"
@@ -35,11 +34,8 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 	}
 	fieldErrors := validate.Errors(nil)
 	values := url.Values(nil)
-	blockErrors := validate.Errors(nil)
-	blockValues := url.Values(nil)
 	if state != nil {
 		fieldErrors, values = state.Errors, state.Values
-		blockErrors, blockValues = state.BlockErrors, state.BlockValues
 		if len(state.AmenityTypes) > 0 {
 			amenityTypes = state.AmenityTypes
 		}
@@ -65,12 +61,6 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 		}
 		ownerOptions[i] = components.SearchableOption{Value: strconv.FormatInt(owner.ID, 10), Label: label}
 	}
-	blockValue := func(key string) string {
-		if blockValues != nil {
-			return blockValues.Get(key)
-		}
-		return ""
-	}
 	descriptionClass := "w-full bg-white px-4 py-3 text-base leading-6 text-ink focus:ring-2 focus:ring-brand/20"
 	if fieldErrors.Has("description") {
 		descriptionClass += " border-red-300 focus:ring-red-200"
@@ -81,7 +71,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 			components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
-		Form(ID("cabin-data"), Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"), If(editing && !ownerMode, Class("rounded-2xl border border-line bg-white p-5 sm:p-7")),
+		Form(ID("cabin-data"), Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"),
 			Div(Class("space-y-7"),
 				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
 					Div(Class("sm:col-span-2"), H2(Class("text-base font-extrabold text-ink"), Text("Dueño de la cabaña"))),
@@ -101,7 +91,6 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 					),
 					components.TextFieldWithError("location", "location", "Ubicación", fieldValue("location", cabin.Location), "Vereda, municipio", "text", true, fieldErrors.ErrorStringFor("location")),
 					components.TextFieldWithError("location_url", "location_url", "Enlace del mapa (opcional)", fieldValue("location_url", cabin.LocationURL), "https://maps.google.com/...", "url", false, fieldErrors.ErrorStringFor("location_url")),
-					Div(Class("min-w-0 sm:col-span-2"), components.TextFieldWithError("cover_image", "cover_image", "URL de foto de portada (opcional)", fieldValue("cover_image", cabin.CoverImage), "https://...", "url", false, fieldErrors.ErrorStringFor("cover_image"))),
 					If(editing, Label(Class("flex min-h-11 items-center gap-2 text-sm font-semibold text-ink"),
 						Input(Type("checkbox"), Name("active"), Value("on"), If(cabin.Active, Checked()), Class("size-4 accent-brand")),
 						Text("Publicada en el buscador"),
@@ -157,39 +146,6 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 				Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar")),
 			),
 		),
-		If(editing && !ownerMode, Div(Class("mt-6 rounded-2xl border border-line bg-white p-5 sm:p-7"),
-			H2(Class("text-lg font-extrabold text-ink"), Text("Calendario de disponibilidad")),
-			If(len(bookings) == 0 && len(blocks) == 0, P(Class("mt-2 text-sm text-muted"), Text("No hay fechas ocupadas."))),
-			If(len(bookings) > 0, Div(Class("mt-4"),
-				H3(Class("text-sm font-extrabold text-ink"), Text("Reservas confirmadas")),
-				Div(Class("mt-2 divide-y divide-line"), Map(bookings, func(inquiry models.Inquiry) Node {
-					return Div(Class("flex flex-wrap items-center justify-between gap-2 py-3 text-sm"),
-						Div(
-							P(Class("font-bold text-ink"), Text(helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)), Span(Class("ml-2 font-normal text-muted"), Text(inquiry.GuestName))),
-							P(Class("mt-1 text-xs text-muted"), Text(helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime))),
-						),
-						Span(Class("text-muted"), Text(helpers.StayTypeLabel(inquiry.StayType)+" · "+strconv.Itoa(inquiry.Guests)+" huéspedes")),
-					)
-				})),
-			)),
-			H3(Class("mt-5 text-sm font-extrabold text-ink"), Text("Bloquear fechas manualmente")),
-			P(Class("mt-1 text-sm text-muted"), Text("Usa la salida como fecha final exclusiva, igual que en una estadía.")),
-			Form(Method("post"), Action("/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/blocks"), Attr("hx-post", "/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/blocks"), Attr("hx-target", "#cabin-page"), Attr("hx-swap", "outerHTML"), Class("mt-4 grid gap-4 sm:grid-cols-[1fr_1fr_1.2fr_auto] sm:items-end"),
-				components.TextFieldWithError("block-from", "date_from", "Desde", blockValue("date_from"), "", "date", true, blockErrors.ErrorStringFor("date_from")),
-				components.TextFieldWithError("block-to", "date_to", "Hasta (sin incluir)", blockValue("date_to"), "", "date", true, blockErrors.ErrorStringFor("date_to")),
-				components.TextFieldWithError("block-reason", "reason", "Motivo", blockValue("reason"), "Uso propio", "text", false, blockErrors.ErrorStringFor("reason")),
-				Button(Type("submit"), Class("inline-flex min-h-11 items-center gap-2 rounded-lg border border-line px-4 py-2.5 font-bold text-ink hover:border-brand"), lucide.CalendarPlus(Class("size-4"), Attr("aria-hidden", "true")), Text("Bloquear")),
-			),
-			If(len(blocks) == 0, P(Class("mt-5 text-sm text-muted"), Text("No hay bloqueos manuales."))),
-			Div(Class("mt-3 divide-y divide-line"), Map(blocks, func(block models.CabinBlock) Node {
-				return Div(Class("flex flex-wrap items-center justify-between gap-3 py-3"),
-					P(Class("text-sm font-semibold text-ink"), Text(block.DateFrom+" – "+block.DateTo), If(block.Source == "external", Text(" · Reserva externa")), If(block.Source != "external" && block.Reason != "", Text(" · "+block.Reason))),
-					Form(Method("post"), Action("/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/blocks/"+strconv.FormatInt(block.ID, 10)+"/delete"), Attr("hx-post", "/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/blocks/"+strconv.FormatInt(block.ID, 10)+"/delete"), Attr("hx-target", "#cabin-page"), Attr("hx-swap", "outerHTML"),
-						Button(Type("submit"), Class("inline-flex items-center gap-2 text-sm font-bold text-brand-dark hover:underline"), lucide.Trash2(Class("size-4"), Attr("aria-hidden", "true")), Text("Quitar bloqueo")),
-					),
-				)
-			})),
-		)),
 	)
 }
 

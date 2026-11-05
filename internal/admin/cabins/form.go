@@ -34,7 +34,6 @@ func cabinFormErrorsFor(r *http.Request, requireOwner bool) validate.Errors {
 		validate.Field("description", validate.MaxLength(2000, "Usa máximo 2000 caracteres.")),
 		validate.Field("location", validate.Required("Ingresa la ubicación."), validate.MaxLength(200, "Usa máximo 200 caracteres.")),
 		validate.Field("location_url", optionalURL("Ingresa un enlace HTTP(S) válido.")),
-		validate.Field("cover_image", optionalURL("Ingresa un enlace HTTP(S) válido.")),
 		validate.Field("included_guests", validate.Required("Indica cuántas personas incluye el precio."), positiveInteger("Ingresa una cantidad válida de personas.")),
 		validate.Field("extra_guest_price", validate.Required("Ingresa el cargo por persona adicional."), integer64Range(0, services.MaxAmountCOP, "Ingresa un cargo válido en COP.")),
 		validate.Field("day_price", validate.Required("Ingresa el precio de pasadía."), integer64Range(0, services.MaxAmountCOP, "Ingresa un precio válido en COP.")),
@@ -69,7 +68,7 @@ func cabinFromRequest(r *http.Request, id int64, requireOwner bool, ownerID int6
 	fieldErrors := cabinFormErrorsFor(r, requireOwner)
 	cabin := models.Cabin{
 		ID: id, Name: r.FormValue("name"), Description: r.FormValue("description"), Location: r.FormValue("location"),
-		LocationURL: r.FormValue("location_url"), CoverImage: r.FormValue("cover_image"),
+		LocationURL:   r.FormValue("location_url"),
 		AcceptsDayUse: r.FormValue("accepts_day_use") == "on", AcceptsOvernight: r.FormValue("accepts_overnight") == "on",
 		DayStart: r.FormValue("day_start"), DayEnd: r.FormValue("day_end"), CheckIn: r.FormValue("check_in"), CheckOut: r.FormValue("check_out"),
 	}

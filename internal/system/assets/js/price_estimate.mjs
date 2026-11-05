@@ -3,10 +3,12 @@ const maxAmountCOP = 1_000_000_000_000;
 export function estimatePrice(input) {
   const guests = Number(input.guests);
   const { includedGuests, extraGuestPrice, dayPrice, nightPrice } = input;
+  const depositCOP = Number(input.depositCOP ?? 0);
   if (
     !Number.isSafeInteger(guests) || guests < 1 ||
     !Number.isSafeInteger(includedGuests) || includedGuests < 1 ||
     !Number.isSafeInteger(extraGuestPrice) || extraGuestPrice < 0 || extraGuestPrice > maxAmountCOP ||
+    !Number.isSafeInteger(depositCOP) || depositCOP < 0 || depositCOP > maxAmountCOP ||
     !Number.isSafeInteger(dayPrice) || dayPrice < 0 || dayPrice > maxAmountCOP ||
     !Number.isSafeInteger(nightPrice) || nightPrice < 0 || nightPrice > maxAmountCOP
   ) return null;
@@ -32,8 +34,9 @@ export function estimatePrice(input) {
   const extraGuests = Math.max(0, guests - includedGuests);
   if (basePrice > Math.floor(maxAmountCOP / units)) return null;
   const baseTotal = basePrice * units;
-  if (extraGuests > 0 && extraGuestPrice > 0 && extraGuests > Math.floor((maxAmountCOP - baseTotal) / extraGuestPrice)) return null;
-  const total = baseTotal + extraGuests * extraGuestPrice;
+  if (baseTotal > maxAmountCOP - depositCOP) return null;
+  if (extraGuests > 0 && extraGuestPrice > 0 && extraGuests > Math.floor((maxAmountCOP - baseTotal - depositCOP) / extraGuestPrice)) return null;
+  const total = baseTotal + extraGuests * extraGuestPrice + depositCOP;
   if (!Number.isSafeInteger(total) || total > maxAmountCOP) return null;
   return { total, unit };
 }

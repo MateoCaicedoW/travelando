@@ -60,7 +60,8 @@ func renderInquiryForm(w http.ResponseWriter, r *http.Request, fieldErrors valid
 		http.NotFound(w, r)
 		return
 	}
-	svc := services.ServiceSetFromCtx(r.Context()).Cabins
+	set := services.ServiceSetFromCtx(r.Context())
+	svc := set.Cabins
 	if svc == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
@@ -74,7 +75,17 @@ func renderInquiryForm(w http.ResponseWriter, r *http.Request, fieldErrors valid
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	if set.Deposits == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	deposit, err := set.Deposits.DepositAmount()
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
 	data := home.CabinQueryData(r.Form)
+	data.DepositCOP = deposit
 	data.RequestValues = r.Form
 	data.RequestErrors = fieldErrors
 	w.WriteHeader(status)

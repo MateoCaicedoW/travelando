@@ -219,7 +219,13 @@ func (s *ownerService) OwnerCabinsPage(ownerID int64, page, pageSize int) (Cabin
 		}
 		result.Cabins = append(result.Cabins, cabin)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return CabinPageResult{}, err
+	}
+	if err := rows.Close(); err != nil {
+		return CabinPageResult{}, err
+	}
+	return result, attachCabinPhotos(db, result.Cabins)
 }
 
 func (s *ownerService) OwnerSessionValid(ownerID, sessionVersion int64) (bool, error) {

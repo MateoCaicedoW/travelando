@@ -18,7 +18,8 @@ func Cabin(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	svc := services.ServiceSetFromCtx(r.Context()).Cabins
+	set := services.ServiceSetFromCtx(r.Context())
+	svc := set.Cabins
 	if svc == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
@@ -33,7 +34,18 @@ func Cabin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No se pudo cargar la cabaña", http.StatusInternalServerError)
 		return
 	}
+	if set.Deposits == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	deposit, err := set.Deposits.DepositAmount()
+	if err != nil {
+		slog.Error("loading global deposit amount", "error", err)
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
 	data := CabinQueryData(r.URL.Query())
+	data.DepositCOP = deposit
 	page := system.Layout{
 		Title:       cabin.Name + " | Travelando",
 		Description: cabin.Description,

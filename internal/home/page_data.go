@@ -13,6 +13,7 @@ type PageData struct {
 	DateFrom      string
 	DateTo        string
 	Guests        int
+	DepositCOP    int64
 	Cabins        []models.Cabin
 	DidSearch     bool
 	Page          int

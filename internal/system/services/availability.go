@@ -113,5 +113,8 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 	for i := range result.Cabins {
 		result.Cabins[i].Amenities = amenitiesByCabin[result.Cabins[i].ID]
 	}
+	if err := attachCabinPhotos(db, result.Cabins); err != nil {
+		return CabinSearchResult{}, err
+	}
 	return result, nil
 }

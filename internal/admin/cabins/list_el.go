@@ -6,7 +6,6 @@ import (
 
 	lucide "github.com/eduardolat/gomponents-lucide"
 	"travelando/internal/system/components"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
 
@@ -48,19 +47,13 @@ func cabinListResultsEl(page services.CabinPageResult, search string) Node {
 			if !cabin.Active {
 				status = "Oculta"
 			}
-			return Article(Class("overflow-hidden rounded-2xl border border-line bg-white"),
-				If(cabin.CoverImage != "", Img(Src(cabin.CoverImage), Alt("Vista de "+cabin.Name), Class("h-40 w-full object-cover"))),
-				Div(Class("p-5"),
-					Div(Class("flex items-start justify-between gap-3"),
-						Div(H2(Class("text-lg font-extrabold text-ink"), Text(cabin.Name)), P(Class("mt-1 text-sm text-muted"), Text(cabin.Location))),
-						Span(Class("shrink-0 rounded-full bg-cream px-2.5 py-1 text-xs font-bold text-brand-dark"), Text(status)),
-					),
-					P(Class("mt-3 text-sm text-muted"), Text(ownerContact)),
-					P(Class("mt-1 text-sm text-muted"), Text(strconv.Itoa(cabin.IncludedGuests)+" incluidos · $"+helpers.FormatCOP(cabin.ExtraGuestPrice)+" por adicional/reserva")),
-					P(Class("mt-2 font-bold text-ink"), Text("$"+helpers.FormatCOP(cabin.DayPrice)+" pasadía · $"+helpers.FormatCOP(cabin.NightPrice)+" / noche")),
-					A(Href("/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/edit"), Attr("hx-get", "/admin/cabins/"+strconv.FormatInt(cabin.ID, 10)+"/edit"), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Class("mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-bold text-ink hover:border-brand hover:text-brand-dark"), lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña y calendario")),
-				),
-			)
+			editURL := "/admin/cabins/" + strconv.FormatInt(cabin.ID, 10) + "/edit"
+			return components.CabinCard(cabin, components.CabinCardOptions{
+				Badge:   Span(Class("shrink-0 rounded-full bg-cream px-2.5 py-1 text-xs font-bold text-brand-dark"), Text(status)),
+				Details: P(Class("text-sm text-muted"), Text(ownerContact)),
+				Price:   components.CabinPrices(cabin),
+				Action:  A(Href(editURL), Attr("hx-get", editURL), Attr("hx-target", "body"), Attr("hx-swap", "beforeend"), Attr("hx-disabled-elt", "this"), Class("inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-bold text-ink hover:border-brand hover:text-brand-dark"), lucide.Pencil(Class("size-4"), Attr("aria-hidden", "true")), Text("Editar cabaña")),
+			})
 		})),
 		If(page.TotalPages > 1, Nav(Attr("aria-label", "Paginación de cabañas"), Class("mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-t border-line pt-6 sm:gap-4"),
 			If(page.Page > 1, A(Href(cabinListPageURL(search, page.Page-1)), Attr("hx-get", cabinListPageURL(search, page.Page-1)), Attr("hx-target", "#cabin-list-results"), Attr("hx-swap", "outerHTML"), Class("inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-line bg-white px-3 text-sm font-bold text-ink transition hover:border-brand hover:bg-cream hover:text-brand-dark sm:w-fit sm:px-4"), Text("← Anterior"))),

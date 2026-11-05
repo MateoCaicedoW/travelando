@@ -69,6 +69,13 @@ func Quote(in QuoteInput) (int64, error) {
 	return total, nil
 }
 
+func AddDepositToQuote(quote, deposit int64) (int64, error) {
+	if quote < 0 || deposit < 0 || deposit > MaxAmountCOP || quote > MaxAmountCOP-deposit {
+		return 0, ErrInvalidInput
+	}
+	return quote + deposit, nil
+}
+
 func Commission(total int64, basisPoints int) (int64, error) {
 	if total < 0 || basisPoints < 0 || basisPoints > 10000 {
 		return 0, ErrInvalidInput

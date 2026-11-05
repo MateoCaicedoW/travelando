@@ -30,3 +30,24 @@ func TestQuoteChargesOnlyGuestsBeyondIncludedCount(t *testing.T) {
 		}
 	}
 }
+
+func TestAddDepositToQuoteRejectsTotalsAboveCOPLimit(t *testing.T) {
+	for _, test := range []struct {
+		quote, deposit int64
+		want           int64
+		valid          bool
+	}{
+		{quote: 100000, deposit: 50000, want: 150000, valid: true},
+		{quote: 0, deposit: 0, want: 0, valid: true},
+		{quote: MaxAmountCOP, deposit: 1},
+		{quote: 100, deposit: -1},
+	} {
+		got, err := AddDepositToQuote(test.quote, test.deposit)
+		if test.valid && (err != nil || got != test.want) {
+			t.Errorf("AddDepositToQuote(%d, %d) = %d, %v; want %d", test.quote, test.deposit, got, err, test.want)
+		}
+		if !test.valid && err == nil {
+			t.Errorf("AddDepositToQuote(%d, %d) should reject invalid sum", test.quote, test.deposit)
+		}
+	}
+}

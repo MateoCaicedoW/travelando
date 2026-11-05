@@ -32,6 +32,7 @@ type Inquiry struct {
 	CleaningHours         int
 	Guests                int
 	Estimated             int64
+	DepositCOP            int64
 	Status                InquiryStatus
 	FinalTotal            int64
 	CommissionBP          int

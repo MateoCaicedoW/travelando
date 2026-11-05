@@ -82,6 +82,7 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("GET /{$}", admindashboard.Index)
 		rg.HandleFunc("GET /inventory", admindashboard.Inventory)
 		rg.HandleFunc("POST /commission", admindashboard.UpdateCommission)
+		rg.HandleFunc("POST /deposit", admindashboard.UpdateDeposit)
 		rg.HandleFunc("POST /inquiries/{id}/commission-paid", admindashboard.MarkCommissionPaid)
 		rg.HandleFunc("GET /inquiries/{id}/edit", reservations.EditAdmin)
 		rg.HandleFunc("POST /inquiries/{id}", reservations.UpdateAdmin)

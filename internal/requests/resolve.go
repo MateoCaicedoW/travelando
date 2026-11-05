@@ -42,7 +42,7 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, http.StatusInternalServerError, "No se pudo cargar la solicitud.")
 		return
 	}
-	fieldErrors := resolutionFormErrors(r)
+	fieldErrors := resolutionFormErrors(r, inquiry.DepositCOP)
 	if fieldErrors.HasAny() {
 		renderReportPage(w, r, http.StatusUnprocessableEntity, "Reportar resultado | Travelando", *inquiry, token, r.Form, fieldErrors)
 		return
@@ -96,15 +96,15 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 	renderReportPage(w, r, 0, "Resultado registrado | Travelando", *inquiry, token, nil, nil)
 }
 
-func resolutionFormErrors(r *http.Request) validate.Errors {
+func resolutionFormErrors(r *http.Request, depositCOP int64) validate.Errors {
 	status := r.FormValue("status")
 	return form.Validate(r, validate.Fields(
 		validate.Field("status", validate.Required("Selecciona el resultado."), validate.WithinOptions([]string{string(models.InquiryReserved), string(models.InquiryLost)}, "Selecciona un resultado válido.")),
-		validate.Field("final_total", validFinalTotal(status)),
+		validate.Field("final_total", validFinalTotal(status, depositCOP)),
 	))
 }
 
-func validFinalTotal(status string) validate.ValidatorFn {
+func validFinalTotal(status string, depositCOP int64) validate.ValidatorFn {
 	return func(values []string) error {
 		if status != string(models.InquiryReserved) {
 			return nil
@@ -113,7 +113,10 @@ func validFinalTotal(status string) validate.ValidatorFn {
 			return errors.New("Ingresa el valor total de la reserva.")
 		}
 		value, err := strconv.ParseInt(strings.ReplaceAll(values[0], ".", ""), 10, 64)
-		if err != nil || value < 0 || value > services.MaxAmountCOP {
+		if err != nil || value < depositCOP || value > services.MaxAmountCOP {
+			if depositCOP > 0 && value < depositCOP {
+				return errors.New("El total acordado debe incluir el depósito de $" + helpers.FormatCOP(depositCOP) + " COP.")
+			}
 			return errors.New("Ingresa un valor válido entre 0 y 1.000.000.000.000 COP.")
 		}
 		return nil

@@ -17,8 +17,8 @@ func FlashToast(message, level string) Node {
 	} else {
 		className += " border-forest/20 bg-forest-soft text-forest"
 	}
-	return Div(ID("global-flash"), Attr("data-global-flash", ""), Attr("data-flash-level", level), Class(className), Role(role),
+	return Div(ID("global-flash"), Attr("data-controller", "flash"), Attr("data-global-flash", ""), Attr("data-flash-level", level), Class(className), Role(role),
 		Span(Text(message)),
-		Button(Type("button"), Attr("data-flash-dismiss", ""), Attr("aria-label", "Cerrar notificación"), Class("shrink-0 font-bold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"), Text("Cerrar")),
+		Button(Type("button"), Attr("data-action", "click->flash#dismiss"), Attr("data-flash-dismiss", ""), Attr("aria-label", "Cerrar notificación"), Class("shrink-0 font-bold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"), Text("Cerrar")),
 	)
 }

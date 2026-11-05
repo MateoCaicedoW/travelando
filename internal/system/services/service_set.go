@@ -19,6 +19,7 @@ type ServiceSet struct {
 	Blocks       BlockService
 	Calendar     CalendarService
 	Commissions  CommissionService
+	Deposits     DepositService
 	Owners       OwnerService
 	Amenities    AmenityService
 }
@@ -29,6 +30,7 @@ type inquiryService struct{ serviceDB }
 type blockService struct{ serviceDB }
 type calendarService struct{ serviceDB }
 type commissionService struct{ serviceDB }
+type depositService struct{ serviceDB }
 type ownerService struct{ serviceDB }
 
 func NewCabinService(conn db.ConnFn) CabinService { return &cabinService{serviceDB{conn}} }
@@ -41,6 +43,7 @@ func NewCalendarService(conn db.ConnFn) CalendarService { return &calendarServic
 func NewCommissionService(conn db.ConnFn) CommissionService {
 	return &commissionService{serviceDB{conn}}
 }
+func NewDepositService(conn db.ConnFn) DepositService { return &depositService{serviceDB{conn}} }
 func NewOwnerService(conn db.ConnFn) OwnerService     { return &ownerService{serviceDB{conn}} }
 func NewAmenityService(conn db.ConnFn) AmenityService { return &amenityService{serviceDB{conn}} }
 
@@ -48,7 +51,7 @@ func NewServiceSet(conn db.ConnFn) ServiceSet {
 	return ServiceSet{
 		Cabins: NewCabinService(conn), Availability: NewAvailabilityService(conn),
 		Inquiries: NewInquiryService(conn), Blocks: NewBlockService(conn),
-		Calendar: NewCalendarService(conn), Commissions: NewCommissionService(conn), Owners: NewOwnerService(conn),
+		Calendar: NewCalendarService(conn), Commissions: NewCommissionService(conn), Deposits: NewDepositService(conn), Owners: NewOwnerService(conn),
 		Amenities: NewAmenityService(conn),
 	}
 }

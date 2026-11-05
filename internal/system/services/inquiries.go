@@ -80,6 +80,10 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	var deposit int64
+	if err := tx.QueryRow(`SELECT deposit_cop FROM commission_settings WHERE id = 1`).Scan(&deposit); err != nil {
+		return "", err
+	}
 	if inquiry.StayType == models.StayDayUse && !cabin.AcceptsDayUse || inquiry.StayType == models.StayOvernight && !cabin.AcceptsOvernight {
 		return "", ErrStayTypeNotAccepted
 	}
@@ -88,6 +92,10 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 		IncludedGuests: cabin.IncludedGuests, ExtraGuestPrice: cabin.ExtraGuestPrice,
 		DayPrice: cabin.DayPrice, NightPrice: cabin.NightPrice,
 	})
+	if err != nil {
+		return "", err
+	}
+	estimated, err := AddDepositToQuote(quote, deposit)
 	if err != nil {
 		return "", err
 	}
@@ -130,9 +138,9 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 		return "", err
 	}
 	_, err = tx.Exec(`
-		INSERT INTO inquiries (cabin_id, guest_name, guest_phone, guest_email, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, report_token_hash)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, cabin.ID, inquiry.GuestName, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.StartTime, inquiry.EndTime, inquiry.CleaningHours, inquiry.Guests, quote, hashToken(token))
+		INSERT INTO inquiries (cabin_id, guest_name, guest_phone, guest_email, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, deposit_cop, report_token_hash)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.ID, inquiry.GuestName, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.StartTime, inquiry.EndTime, inquiry.CleaningHours, inquiry.Guests, estimated, deposit, hashToken(token))
 	if err != nil {
 		return "", err
 	}
@@ -143,7 +151,8 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 	inquiry.CabinName = cabin.Name
 	inquiry.OwnerName = cabin.OwnerName
 	inquiry.WhatsApp = cabin.OwnerWhatsApp
-	inquiry.Estimated = quote
+	inquiry.Estimated = estimated
+	inquiry.DepositCOP = deposit
 	inquiry.Status = models.InquiryPending
 	return token, nil
 }
@@ -322,7 +331,7 @@ func (s *inquiryService) updateReservation(inquiryID, ownerID int64, actorRole s
 	priceChanged := update.Guests != current.Guests || update.StayType != current.StayType || update.DateFrom != current.DateFrom || dateTo != current.DateTo
 	finalTotal := current.FinalTotal
 	if update.UseFinalTotal {
-		if update.FinalTotal < 0 || update.FinalTotal > MaxAmountCOP {
+		if update.FinalTotal < current.DepositCOP || update.FinalTotal > MaxAmountCOP {
 			return ErrInvalidInput
 		}
 		finalTotal = update.FinalTotal
@@ -331,16 +340,20 @@ func (s *inquiryService) updateReservation(inquiryID, ownerID int64, actorRole s
 		if update.StayType == models.StayDayUse {
 			quoteEnd = from
 		}
-		finalTotal, err = Quote(QuoteInput{
+		quote, quoteErr := Quote(QuoteInput{
 			Type: update.StayType, StartDate: from, EndDate: quoteEnd, Guests: update.Guests,
 			IncludedGuests: cabin.IncludedGuests, ExtraGuestPrice: cabin.ExtraGuestPrice,
 			DayPrice: cabin.DayPrice, NightPrice: cabin.NightPrice,
 		})
+		if quoteErr != nil {
+			return quoteErr
+		}
+		finalTotal, err = AddDepositToQuote(quote, current.DepositCOP)
 		if err != nil {
 			return err
 		}
 	}
-	commission, err := Commission(finalTotal, current.CommissionBP)
+	commission, err := Commission(finalTotal-current.DepositCOP, current.CommissionBP)
 	if err != nil {
 		return err
 	}
@@ -432,11 +445,12 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 
 	var current models.InquiryStatus
 	var commissionBP int
+	var deposit int64
 	err = tx.QueryRow(`
-		SELECT i.status, cs.commission_bps
+		SELECT i.status, cs.commission_bps, i.deposit_cop
 		FROM inquiries i JOIN commission_settings cs ON cs.id = 1
 		WHERE i.report_token_hash = ?
-	`, hashToken(token)).Scan(&current, &commissionBP)
+	`, hashToken(token)).Scan(&current, &commissionBP, &deposit)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -446,12 +460,15 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 	if current != models.InquiryPending {
 		return ErrInvalidInput
 	}
+	if status == models.InquiryReserved && finalTotal < deposit {
+		return ErrInvalidInput
+	}
 
 	var result sql.Result
 	if status == models.InquiryLost {
 		result, err = tx.Exec(`UPDATE inquiries SET status = 'lost', resolved_at = CURRENT_TIMESTAMP WHERE report_token_hash = ? AND status = 'pending'`, hashToken(token))
 	} else {
-		commission, err := Commission(finalTotal, commissionBP)
+		commission, err := Commission(finalTotal-deposit, commissionBP)
 		if err != nil {
 			return err
 		}
@@ -499,7 +516,7 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 
 const inquirySelect = `
 	SELECT i.id, i.cabin_id, c.name, COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), i.guest_name, i.guest_phone, i.guest_email,
-	       i.stay_type, i.date_from, i.date_to, i.start_time, i.end_time, i.cleaning_hours, i.guests, i.estimated_total, i.status,
+	       i.stay_type, i.date_from, i.date_to, i.start_time, i.end_time, i.cleaning_hours, i.guests, i.estimated_total, i.deposit_cop, i.status,
 	       COALESCE(i.final_total, 0), COALESCE(i.commission_bps, cs.commission_bps), COALESCE(i.commission_due, 0), COALESCE(i.commission_paid_at, ''),
 	       i.commission_paid_amount, COALESCE(i.commission_due, 0) - i.commission_paid_amount, i.created_at
 	FROM inquiries i JOIN cabins c ON c.id = i.cabin_id LEFT JOIN owners o ON o.id = c.owner_id JOIN commission_settings cs ON cs.id = 1
@@ -510,7 +527,7 @@ func scanInquiry(row rowScanner) (models.Inquiry, error) {
 	err := row.Scan(
 		&inquiry.ID, &inquiry.CabinID, &inquiry.CabinName, &inquiry.OwnerName, &inquiry.WhatsApp,
 		&inquiry.GuestName, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo, &inquiry.StartTime, &inquiry.EndTime, &inquiry.CleaningHours,
-		&inquiry.Guests, &inquiry.Estimated, &inquiry.Status, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt,
+		&inquiry.Guests, &inquiry.Estimated, &inquiry.DepositCOP, &inquiry.Status, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt,
 		&inquiry.CommissionPaidAmount, &inquiry.CommissionBalance, &inquiry.CreatedAt,
 	)
 	return inquiry, err

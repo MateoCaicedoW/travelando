@@ -6,6 +6,7 @@ export default class extends Controller {
   static values = {
     includedGuests: Number,
     extraGuestPrice: Number,
+    depositCop: Number,
     dayPrice: Number,
     nightPrice: Number,
   };
@@ -34,6 +35,7 @@ export default class extends Controller {
       dateTo: values.get('date_to'),
       includedGuests: this.includedGuestsValue,
       extraGuestPrice: this.extraGuestPriceValue,
+      depositCOP: this.depositCopValue,
       dayPrice: this.dayPriceValue,
       nightPrice: this.nightPriceValue,
     });
