@@ -23,6 +23,7 @@ type Cabin struct {
 	CheckOut         string
 	CleaningHours    int
 	Active           bool
+	Amenities        []CabinAmenity
 }
 
 type CabinBlock struct {

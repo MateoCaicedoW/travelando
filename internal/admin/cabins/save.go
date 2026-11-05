@@ -25,14 +25,28 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 		return
 	}
 	cabin, fieldErrors := cabinFromForm(r, id)
-	cabin.Active = r.FormValue("active") == "on" || cabin.ID == 0
-	if fieldErrors.HasAny() {
-		renderCabinForm(w, r, cabin, &cabinFormState{Errors: fieldErrors, Values: r.Form}, http.StatusUnprocessableEntity)
-		return
-	}
 	svc := services.ServiceSetFromCtx(r.Context()).Cabins
 	if svc == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Amenities == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	amenityTypes, err := set.Amenities.TypesForOwner(cabin.OwnerID)
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	cabinAmenities, amenityErrors := CabinAmenitiesFromForm(r, amenityTypes)
+	cabin.Amenities = cabinAmenities
+	fieldErrors = MergeCabinFormErrors(fieldErrors, amenityErrors)
+	cabin.Active = r.FormValue("active") == "on" || cabin.ID == 0
+	state := &cabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	if fieldErrors.HasAny() {
+		renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
 		return
 	}
 	if err := operation(svc, &cabin); err != nil {
@@ -41,7 +55,7 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 				http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 				return
 			}
-			renderCabinForm(w, r, cabin, &cabinFormState{Values: r.Form}, http.StatusUnprocessableEntity)
+			renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
 			return
 		}
 		slog.Error("saving cabin", "error", err)
@@ -49,7 +63,7 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 			http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 			return
 		}
-		renderCabinForm(w, r, cabin, &cabinFormState{Values: r.Form}, http.StatusInternalServerError)
+		renderCabinForm(w, r, cabin, state, http.StatusInternalServerError)
 		return
 	}
 	helpers.Redirect(w, r, "/admin/cabins")
@@ -71,9 +85,9 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	form := newEl(cabin, owners, state)
+	form := newEl(cabin, owners, state.AmenityTypes, state)
 	if cabin.ID > 0 {
-		form = editModalEl(cabin, blocks, bookings, owners, state)
+		form = editModalEl(cabin, blocks, bookings, owners, state.AmenityTypes, state)
 	}
 	w.WriteHeader(status)
 	if cabin.ID > 0 {

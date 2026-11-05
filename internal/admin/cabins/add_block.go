@@ -62,11 +62,11 @@ func AddBlock(w http.ResponseWriter, r *http.Request) {
 
 func renderBlockErrors(w http.ResponseWriter, r *http.Request, id int64, fieldErrors map[string][]error) {
 	set := services.ServiceSetFromCtx(r.Context())
-	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil {
+	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil || set.Amenities == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
-	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, id)
+	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, set.Amenities, id)
 	if errors.Is(err, services.ErrNotFound) {
 		http.NotFound(w, r)
 		return

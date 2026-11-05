@@ -96,5 +96,22 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 		result.Cabins = append(result.Cabins, cabin)
 		result.Total = total
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return CabinSearchResult{}, err
+	}
+	if err := rows.Close(); err != nil {
+		return CabinSearchResult{}, err
+	}
+	cabinIDs := make([]int64, len(result.Cabins))
+	for i, cabin := range result.Cabins {
+		cabinIDs[i] = cabin.ID
+	}
+	amenitiesByCabin, err := cabinAmenitiesFor(db, cabinIDs)
+	if err != nil {
+		return CabinSearchResult{}, err
+	}
+	for i := range result.Cabins {
+		result.Cabins[i].Amenities = amenitiesByCabin[result.Cabins[i].ID]
+	}
+	return result, nil
 }

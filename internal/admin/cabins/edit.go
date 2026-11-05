@@ -19,11 +19,11 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set := services.ServiceSetFromCtx(r.Context())
-	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil {
+	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil || set.Amenities == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
-	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, id)
+	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, set.Amenities, id)
 	if errors.Is(err, services.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -39,7 +39,7 @@ func renderCabinEditDialog(w http.ResponseWriter, data cabinEditData, state *cab
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
-	dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state)})
+	dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, data.AmenityTypes, state)})
 	if err := dialog.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}
@@ -47,11 +47,11 @@ func renderCabinEditDialog(w http.ResponseWriter, data cabinEditData, state *cab
 
 func refreshCabinEdit(w http.ResponseWriter, r *http.Request, id int64) {
 	set := services.ServiceSetFromCtx(r.Context())
-	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil {
+	if set.Cabins == nil || set.Blocks == nil || set.Inquiries == nil || set.Owners == nil || set.Amenities == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
-	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, id)
+	data, err := loadCabinEditData(set.Cabins, set.Blocks, set.Inquiries, set.Owners, set.Amenities, id)
 	if err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
@@ -64,7 +64,7 @@ func renderCabinEditContent(w http.ResponseWriter, r *http.Request, data cabinEd
 		w.WriteHeader(status)
 	}
 	if helpers.IsHTMX(r) {
-		if err := editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, state).Render(w); err != nil {
+		if err := editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, data.AmenityTypes, state).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return

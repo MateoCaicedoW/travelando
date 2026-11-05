@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	lucide "github.com/eduardolat/gomponents-lucide"
@@ -47,6 +48,7 @@ func AdminHeader(path string) Node {
 		portalLink{"Solicitudes", "/admin/", lucide.ClipboardList(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Calendario", "/admin/calendar", lucide.CalendarDays(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Cabañas", "/admin/cabins", lucide.BedDouble(Class("size-4"), Attr("aria-hidden", "true"))},
+		portalLink{"Amenidades", "/admin/amenities", lucide.Sparkles(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Dueños", "/admin/owners", lucide.UsersRound(Class("size-4"), Attr("aria-hidden", "true"))},
 	)
 }
@@ -55,6 +57,7 @@ func OwnerHeader(path string) Node {
 	return portalHeader("/owner/", "/owner/logout", path, "Navegación de dueño",
 		portalLink{"Calendario", "/owner/", lucide.CalendarDays(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Mis cabañas", "/owner/cabins", lucide.BedDouble(Class("size-4"), Attr("aria-hidden", "true"))},
+		portalLink{"Amenidades", "/owner/amenities", lucide.Sparkles(Class("size-4"), Attr("aria-hidden", "true"))},
 	)
 }
 
@@ -143,6 +146,7 @@ func CabinCard(cabin models.Cabin, price int64, stayType models.StayType, href s
 				Span(Class("shrink-0 rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Text(stay)),
 			),
 			P(Class("mt-3 line-clamp-2 min-h-11 text-sm leading-6 text-muted"), Text(cabin.Description)),
+			cabinAmenitySummary(cabin.Amenities),
 			P(Class("mt-3 text-sm font-semibold text-muted"), Text(helpers.ScheduleLabel(stayType, startTime, endTime))),
 			Div(Class("mt-5 flex items-end justify-between gap-3 border-t border-line pt-4"),
 				Div(
@@ -155,6 +159,28 @@ func CabinCard(cabin models.Cabin, price int64, stayType models.StayType, href s
 			),
 		),
 	)
+}
+
+func cabinAmenitySummary(amenities []models.CabinAmenity) Node {
+	items := make([]Node, 0, len(amenities))
+	for _, amenity := range amenities {
+		label := amenity.Name
+		switch amenity.ValueType {
+		case models.AmenityBoolean:
+			if !amenity.BooleanValue {
+				continue
+			}
+		case models.AmenityQuantity:
+			if amenity.QuantityValue <= 0 {
+				continue
+			}
+			label += " · " + strconv.Itoa(amenity.QuantityValue)
+		default:
+			continue
+		}
+		items = append(items, Span(Class("rounded-full bg-cream px-2.5 py-1 text-xs font-semibold text-brand-dark"), Text(label)))
+	}
+	return If(len(items) > 0, Div(Attr("aria-label", "Amenidades"), Class("mt-3 flex flex-wrap gap-2"), Group(items)))
 }
 
 func FieldLabel(forID, label string) Node {

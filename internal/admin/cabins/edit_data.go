@@ -8,14 +8,15 @@ import (
 )
 
 type cabinEditData struct {
-	Cabin    models.Cabin
-	Blocks   []models.CabinBlock
-	Bookings []models.Inquiry
-	Owners   []models.Owner
+	Cabin        models.Cabin
+	Blocks       []models.CabinBlock
+	Bookings     []models.Inquiry
+	Owners       []models.Owner
+	AmenityTypes []models.AmenityType
 }
 
-func loadCabinEditData(cabins services.CabinService, blocksSvc services.BlockService, inquiriesSvc services.InquiryService, ownersSvc services.OwnerService, id int64) (cabinEditData, error) {
-	if cabins == nil || ownersSvc == nil {
+func loadCabinEditData(cabins services.CabinService, blocksSvc services.BlockService, inquiriesSvc services.InquiryService, ownersSvc services.OwnerService, amenitiesSvc services.AmenityService, id int64) (cabinEditData, error) {
+	if cabins == nil || ownersSvc == nil || amenitiesSvc == nil {
 		return cabinEditData{}, errors.New("cabin or owner service unavailable")
 	}
 	cabin, err := cabins.Cabin(id)
@@ -27,6 +28,10 @@ func loadCabinEditData(cabins services.CabinService, blocksSvc services.BlockSer
 	}
 	data := cabinEditData{Cabin: *cabin}
 	data.Owners, err = ownersSvc.Owners()
+	if err != nil {
+		return cabinEditData{}, err
+	}
+	data.AmenityTypes, err = amenitiesSvc.TypesForOwner(cabin.OwnerID)
 	if err != nil {
 		return cabinEditData{}, err
 	}

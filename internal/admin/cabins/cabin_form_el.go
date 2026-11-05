@@ -16,7 +16,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, state *cabinFormState, editing, ownerMode bool, ownerPage int) Node {
+func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings []models.Inquiry, owners []models.Owner, amenityTypes []models.AmenityType, state *cabinFormState, editing, ownerMode bool, ownerPage int) Node {
 	title := "Nueva cabaña"
 	if editing {
 		title = "Editar cabaña"
@@ -40,6 +40,9 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 	if state != nil {
 		fieldErrors, values = state.Errors, state.Values
 		blockErrors, blockValues = state.BlockErrors, state.BlockValues
+		if len(state.AmenityTypes) > 0 {
+			amenityTypes = state.AmenityTypes
+		}
 	}
 	fieldValue := func(key, fallback string) string {
 		if values != nil {
@@ -78,7 +81,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 			components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
-		Form(Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"), If(editing && !ownerMode, Class("rounded-2xl border border-line bg-white p-5 sm:p-7")),
+		Form(ID("cabin-data"), Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"), If(editing && !ownerMode, Class("rounded-2xl border border-line bg-white p-5 sm:p-7")),
 			Div(Class("space-y-7"),
 				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
 					Div(Class("sm:col-span-2"), H2(Class("text-base font-extrabold text-ink"), Text("Dueño de la cabaña"))),
@@ -104,6 +107,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 						Text("Publicada en el buscador"),
 					)),
 				),
+				amenityFieldsEl(cabin, amenityTypes, values, fieldErrors, ownerMode, false, nil),
 				Div(Class("rounded-2xl border border-line p-4 sm:p-6"),
 					H2(Class("text-base font-extrabold text-ink"), Text("Tarifas y horarios")),
 					P(Class("mt-1 text-sm text-muted"), Text("El cargo por huésped adicional se cobra una sola vez por reserva.")),
@@ -187,4 +191,83 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 			})),
 		)),
 	)
+}
+
+func amenityFieldsEl(cabin models.Cabin, types []models.AmenityType, values url.Values, fieldErrors validate.Errors, ownerMode, oob bool, createState *components.AmenityManagerState) Node {
+	manageURL := "/admin/amenities"
+	createURL := "/admin/cabin-amenities/create"
+	if ownerMode {
+		manageURL = "/owner/amenities"
+		createURL = "/owner/cabin-amenities/create"
+	}
+	newName, newValueType, message := "", models.AmenityBoolean, ""
+	var createErrors validate.Errors
+	if createState != nil {
+		newName, newValueType, message, createErrors = createState.Type.Name, createState.Type.ValueType, createState.Message, createState.Errors
+	}
+	return Div(ID("cabin-amenity-fields"), If(oob, Attr("hx-swap-oob", "outerHTML")), Class("rounded-2xl border border-line p-4 sm:p-6"),
+		Div(Class("flex flex-wrap items-start justify-between gap-3"),
+			Div(H2(Class("text-base font-extrabold text-ink"), Text("Amenidades")),
+				P(Class("mt-1 text-sm text-muted"), Text("Indica cuáles tiene esta cabaña y sus cantidades.")),
+			),
+			A(Href(manageURL), Class("inline-flex min-h-10 items-center rounded-lg border border-line px-3 py-2 text-sm font-bold text-brand-dark hover:border-brand"), Text("Administrar catálogo")),
+		),
+		If(len(types) == 0, P(Class("mt-4 text-sm text-muted"), Text("No hay amenidades disponibles."))),
+		If(len(types) > 0, Div(Class("mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"), Map(types, func(amenityType models.AmenityType) Node {
+			key := "amenity_" + strconv.FormatInt(amenityType.ID, 10)
+			value, checked := cabinAmenityFormValue(cabin, amenityType, values)
+			if amenityType.ValueType == models.AmenityBoolean {
+				return Div(Class("rounded-xl border border-line p-3"),
+					Label(Class("flex min-h-10 items-center gap-2 text-sm font-semibold text-ink"),
+						Input(ID(key), Type("checkbox"), Name(key), Value("on"), If(checked, Checked()), If(fieldErrors.Has(key), Attr("aria-invalid", "true")), Class("size-4 accent-brand")),
+						Text(amenityType.Name),
+					),
+					components.FieldError(key, fieldErrors.ErrorStringFor(key)),
+				)
+			}
+			return Div(Class("rounded-xl border border-line p-3"),
+				components.NumberFieldWithError(key, key, amenityType.Name, value, "0", "", fieldErrors.ErrorStringFor(key)),
+			)
+		}))),
+		Div(Class("mt-5 grid gap-3 border-t border-line pt-4 sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-end"),
+			Div(Class("min-w-0"),
+				components.FieldLabel("new_amenity_name", "Nombre"),
+				Input(ID("new_amenity_name"), Name("new_amenity_name"), Type("text"), Value(newName), MaxLength("80"), Placeholder("Ej. Piscina"), If(createErrors.Has("new_amenity_name"), Attr("aria-invalid", "true")), Class("mt-1 h-10 w-full bg-white px-3 text-sm text-ink")),
+				components.FieldError("new_amenity_name", createErrors.ErrorStringFor("new_amenity_name")),
+			),
+			Div(Class("min-w-0"),
+				components.FieldLabel("new_amenity_value_type", "Tipo de valor"),
+				Select(ID("new_amenity_value_type"), Name("new_amenity_value_type"), If(createErrors.Has("new_amenity_value_type"), Attr("aria-invalid", "true")), Class("mt-1 h-10 w-full bg-white px-3 text-sm text-ink"),
+					Option(Value(string(models.AmenityBoolean)), If(newValueType == models.AmenityBoolean, Selected()), Text("Sí / no")),
+					Option(Value(string(models.AmenityQuantity)), If(newValueType == models.AmenityQuantity, Selected()), Text("Cantidad")),
+				),
+				components.FieldError("new_amenity_value_type", createErrors.ErrorStringFor("new_amenity_value_type")),
+			),
+			Button(Type("button"), Attr("hx-post", createURL), Attr("hx-target", "#cabin-amenity-fields"), Attr("hx-swap", "outerHTML"), Attr("hx-include", "#cabin-data"), Class("inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-dark px-3 text-sm font-bold text-white hover:brightness-90"), Text("Agregar")),
+			If(message != "", P(Attr("role", "status"), Class("text-sm font-semibold text-forest sm:col-span-3"), Text(message))),
+		),
+	)
+}
+
+func cabinAmenityFormValue(cabin models.Cabin, amenityType models.AmenityType, values url.Values) (string, bool) {
+	key := "amenity_" + strconv.FormatInt(amenityType.ID, 10)
+	if values != nil {
+		submitted, exists := values[key]
+		if amenityType.ValueType == models.AmenityBoolean {
+			return "", exists && len(submitted) == 1 && submitted[0] == "on"
+		}
+		if exists && len(submitted) == 1 {
+			return submitted[0], false
+		}
+		return "0", false
+	}
+	for _, amenity := range cabin.Amenities {
+		if amenity.TypeID == amenityType.ID {
+			if amenityType.ValueType == models.AmenityBoolean {
+				return "", amenity.BooleanValue
+			}
+			return strconv.Itoa(amenity.QuantityValue), false
+		}
+	}
+	return "0", false
 }

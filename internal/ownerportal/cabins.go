@@ -24,8 +24,9 @@ import (
 const ownerCabinsPerPage = 10
 
 type ownerCabinFormState struct {
-	Errors validate.Errors
-	Values url.Values
+	Errors       validate.Errors
+	Values       url.Values
+	AmenityTypes []models.AmenityType
 }
 
 func Cabins(w http.ResponseWriter, r *http.Request) {
@@ -69,18 +70,26 @@ func CreateCabin(w http.ResponseWriter, r *http.Request) {
 	}
 	ownerID := ownerIDFromSession(r)
 	page := ownerCabinPageParam(r)
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Amenities == nil || set.Cabins == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	amenityTypes, err := set.Amenities.TypesForOwner(ownerID)
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
 	cabin, fieldErrors := admincabins.OwnerCabinFromForm(r, 0, ownerID)
-	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form}
+	cabinAmenities, amenityErrors := admincabins.CabinAmenitiesFromForm(r, amenityTypes)
+	cabin.Amenities = cabinAmenities
+	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
+	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
 	if fieldErrors.HasAny() {
 		ownerCabinFormError(w, r, page, cabin, state, false)
 		return
 	}
 	cabin.Active = true
-	set := services.ServiceSetFromCtx(r.Context())
-	if set.Cabins == nil {
-		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
-		return
-	}
 	if err := set.Cabins.CreateCabinForOwner(ownerID, &cabin); err != nil {
 		if errors.Is(err, services.ErrInvalidInput) {
 			addOwnerCabinFormError(state, "name", "Revisa los datos de la cabaña.")
@@ -106,16 +115,24 @@ func UpdateCabin(w http.ResponseWriter, r *http.Request) {
 	}
 	ownerID := ownerIDFromSession(r)
 	page := ownerCabinPageParam(r)
-	cabin, fieldErrors := admincabins.OwnerCabinFromForm(r, id, ownerID)
-	cabin.Active = r.FormValue("active") == "on"
-	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form}
-	if fieldErrors.HasAny() {
-		ownerCabinFormError(w, r, page, cabin, state, true)
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Amenities == nil || set.Cabins == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
-	set := services.ServiceSetFromCtx(r.Context())
-	if set.Cabins == nil {
-		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+	amenityTypes, err := set.Amenities.TypesForOwner(ownerID)
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	cabin, fieldErrors := admincabins.OwnerCabinFromForm(r, id, ownerID)
+	cabinAmenities, amenityErrors := admincabins.CabinAmenitiesFromForm(r, amenityTypes)
+	cabin.Amenities = cabinAmenities
+	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
+	cabin.Active = r.FormValue("active") == "on"
+	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	if fieldErrors.HasAny() {
+		ownerCabinFormError(w, r, page, cabin, state, true)
 		return
 	}
 	if err := set.Cabins.UpdateCabinForOwner(ownerID, &cabin); err != nil {
@@ -180,7 +197,21 @@ func renderOwnerCabins(w http.ResponseWriter, r *http.Request, page, status int,
 }
 
 func ownerCabinModalResponse(w http.ResponseWriter, r *http.Request, cabin models.Cabin, state *ownerCabinFormState, ownerCabinErr validate.Errors, editing bool, page, status int) {
-	modal := ownerCabinDialogEl(cabin, ownerCabinErr, cabinValues(state), editing, page, false)
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Amenities == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+	amenityTypes, err := set.Amenities.TypesForOwner(ownerIDFromSession(r))
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	if state == nil {
+		state = &ownerCabinFormState{}
+	}
+	state.AmenityTypes = amenityTypes
+	modal := ownerCabinDialogEl(cabin, ownerCabinErr, cabinValues(state), state.AmenityTypes, editing, page, false)
 	if helpers.IsHTMX(r) {
 		w.WriteHeader(status)
 		if err := modal.Render(w); err != nil {
@@ -208,7 +239,7 @@ func ownerCabinFormError(w http.ResponseWriter, r *http.Request, page int, cabin
 	}
 	content := ownerCabinsContentEl(result)
 	if helpers.IsHTMX(r) {
-		content = Group{content, ownerCabinDialogEl(cabin, state.Errors, state.Values, editing, page, true)}
+		content = Group{content, ownerCabinDialogEl(cabin, state.Errors, state.Values, state.AmenityTypes, editing, page, true)}
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		if err := content.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
@@ -216,7 +247,7 @@ func ownerCabinFormError(w http.ResponseWriter, r *http.Request, page int, cabin
 		return
 	}
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	pageEl := system.Layout{Title: "Cabaña | Travelando", Portal: system.PortalOwner, Yield: Group{content, ownerCabinDialogEl(cabin, state.Errors, state.Values, editing, page, false)}}.New(r)
+	pageEl := system.Layout{Title: "Cabaña | Travelando", Portal: system.PortalOwner, Yield: Group{content, ownerCabinDialogEl(cabin, state.Errors, state.Values, state.AmenityTypes, editing, page, false)}}.New(r)
 	if err := pageEl.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}
@@ -236,7 +267,7 @@ func cabinValues(state *ownerCabinFormState) url.Values {
 	return state.Values
 }
 
-func ownerCabinDialogEl(cabin models.Cabin, fieldErrors validate.Errors, values url.Values, editing bool, page int, oob bool) Node {
+func ownerCabinDialogEl(cabin models.Cabin, fieldErrors validate.Errors, values url.Values, amenityTypes []models.AmenityType, editing bool, page int, oob bool) Node {
 	label := "Agregar cabaña"
 	if editing {
 		label = "Editar cabaña"
@@ -245,7 +276,7 @@ func ownerCabinDialogEl(cabin models.Cabin, fieldErrors validate.Errors, values 
 	if oob {
 		swapOOB = "outerHTML"
 	}
-	return components.CustomDialog(components.DialogProps{Label: label, SwapOOB: swapOOB, Yield: admincabins.OwnerCabinFormEl(cabin, fieldErrors, values, editing, page)})
+	return components.CustomDialog(components.DialogProps{Label: label, SwapOOB: swapOOB, Yield: admincabins.OwnerCabinFormEl(cabin, fieldErrors, values, amenityTypes, editing, page)})
 }
 
 func ownerCabinsContentEl(result services.CabinPageResult) Node {

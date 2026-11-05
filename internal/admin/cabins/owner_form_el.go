@@ -9,7 +9,8 @@ import (
 	. "maragu.dev/gomponents"
 )
 
-func OwnerCabinFormEl(cabin models.Cabin, fieldErrors validate.Errors, values url.Values, editing bool, page int) Node {
+func OwnerCabinFormEl(cabin models.Cabin, fieldErrors validate.Errors, values url.Values, amenityTypes []models.AmenityType, editing bool, page int) Node {
 	state := &cabinFormState{Errors: fieldErrors, Values: values}
-	return cabinSharedFormEl(cabin, nil, nil, nil, state, editing, true, page)
+	state.AmenityTypes = amenityTypes
+	return cabinSharedFormEl(cabin, nil, nil, nil, amenityTypes, state, editing, true, page)
 }

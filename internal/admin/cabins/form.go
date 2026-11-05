@@ -17,10 +17,11 @@ import (
 )
 
 type cabinFormState struct {
-	Errors      validate.Errors
-	Values      url.Values
-	BlockErrors validate.Errors
-	BlockValues url.Values
+	Errors       validate.Errors
+	Values       url.Values
+	AmenityTypes []models.AmenityType
+	BlockErrors  validate.Errors
+	BlockValues  url.Values
 }
 
 func cabinFormErrors(r *http.Request) validate.Errors {
@@ -120,6 +121,52 @@ func cabinFromRequest(r *http.Request, id int64, requireOwner bool, ownerID int6
 		}
 	}
 	return cabin, fieldErrors
+}
+
+func CabinAmenitiesFromForm(r *http.Request, types []models.AmenityType) ([]models.CabinAmenity, validate.Errors) {
+	amenities := make([]models.CabinAmenity, 0, len(types))
+	fieldErrors := validate.Errors{}
+	for _, amenityType := range types {
+		key := "amenity_" + strconv.FormatInt(amenityType.ID, 10)
+		amenity := models.CabinAmenity{TypeID: amenityType.ID, Name: amenityType.Name, ValueType: amenityType.ValueType}
+		switch amenityType.ValueType {
+		case models.AmenityBoolean:
+			values, submitted := r.Form[key]
+			if submitted && (len(values) != 1 || values[0] != "on") {
+				addCabinFormError(fieldErrors, key, "Selecciona un valor válido.")
+			} else {
+				amenity.BooleanValue = submitted
+			}
+		case models.AmenityQuantity:
+			values, submitted := r.Form[key]
+			if !submitted {
+				amenity.QuantityValue = 0
+			} else if len(values) != 1 {
+				addCabinFormError(fieldErrors, key, "Ingresa una cantidad válida.")
+			} else if amount, err := strconv.Atoi(values[0]); err != nil || amount < 0 {
+				addCabinFormError(fieldErrors, key, "Ingresa una cantidad válida mayor o igual a cero.")
+			} else {
+				amenity.QuantityValue = amount
+			}
+		default:
+			addCabinFormError(fieldErrors, key, "El tipo de amenidad no es válido.")
+		}
+		amenities = append(amenities, amenity)
+	}
+	return amenities, fieldErrors
+}
+
+func MergeCabinFormErrors(target, source validate.Errors) validate.Errors {
+	if len(source) == 0 {
+		return target
+	}
+	if target == nil {
+		target = validate.Errors{}
+	}
+	for field, messages := range source {
+		target[field] = append(target[field], messages...)
+	}
+	return target
 }
 
 func validOwnerID(values []string) error {

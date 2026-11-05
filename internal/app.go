@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	adminamenities "travelando/internal/admin/amenities"
 	adminauth "travelando/internal/admin/auth"
 	admincabins "travelando/internal/admin/cabins"
 	admincalendar "travelando/internal/admin/calendar"
@@ -91,8 +92,13 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("POST /cabins", admincabins.Create)
 		rg.HandleFunc("GET /cabins/{id}/edit", admincabins.Edit)
 		rg.HandleFunc("POST /cabins/{id}", admincabins.Update)
+		rg.HandleFunc("POST /cabin-amenities/create", admincabins.CreateCabinAmenityTypeHandler)
 		rg.HandleFunc("POST /cabins/{id}/blocks", admincabins.AddBlock)
 		rg.HandleFunc("POST /cabins/{id}/blocks/{blockID}/delete", admincabins.DeleteBlock)
+		rg.HandleFunc("GET /amenities", adminamenities.Index)
+		rg.HandleFunc("POST /amenities/create", adminamenities.Create)
+		rg.HandleFunc("POST /amenities/{id}", adminamenities.Update)
+		rg.HandleFunc("POST /amenities/{id}/delete", adminamenities.Delete)
 		rg.HandleFunc("GET /owners", adminowners.Index)
 		rg.HandleFunc("GET /owners/new", adminowners.New)
 		rg.HandleFunc("GET /owners/{id}/edit", adminowners.Edit)
@@ -108,6 +114,11 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("POST /cabins", ownerportal.CreateCabin)
 		rg.HandleFunc("GET /cabins/{id}/edit", ownerportal.EditCabin)
 		rg.HandleFunc("POST /cabins/{id}", ownerportal.UpdateCabin)
+		rg.HandleFunc("POST /cabin-amenities/create", ownerportal.CreateCabinAmenityType)
+		rg.HandleFunc("GET /amenities", ownerportal.AmenityTypes)
+		rg.HandleFunc("POST /amenities/create", ownerportal.CreateAmenityType)
+		rg.HandleFunc("POST /amenities/{id}", ownerportal.UpdateAmenityType)
+		rg.HandleFunc("POST /amenities/{id}/delete", ownerportal.DeleteAmenityType)
 		rg.HandleFunc("GET /blocks/new", ownerportal.NewBlock)
 		rg.HandleFunc("POST /blocks", ownerportal.AddBlock)
 		rg.HandleFunc("POST /blocks/{blockID}/delete", ownerportal.DeleteBlock)

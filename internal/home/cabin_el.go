@@ -70,6 +70,23 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 					Span(Class("rounded-full bg-cream px-4 py-2 text-sm font-bold text-brand-dark"), Textf("%d personas incluidas", cabin.IncludedGuests)),
 				),
 				P(Class("mt-5 whitespace-pre-line text-base leading-7 text-muted"), Text(cabin.Description)),
+				If(len(cabin.Amenities) > 0, Div(Class("mt-7"),
+					H2(Class("text-xl font-extrabold text-ink"), Text("Amenidades")),
+					Div(Class("mt-3 grid gap-3 sm:grid-cols-2"), Map(cabin.Amenities, func(amenity models.CabinAmenity) Node {
+						value := "No"
+						if amenity.ValueType == models.AmenityBoolean {
+							if amenity.BooleanValue {
+								value = "Sí"
+							}
+						} else {
+							value = strconv.Itoa(amenity.QuantityValue)
+						}
+						return Div(Class("rounded-xl border border-line bg-white px-4 py-3"),
+							P(Class("text-sm font-bold text-ink"), Text(amenity.Name)),
+							P(Class("mt-1 text-sm text-muted"), Text(value)),
+						)
+					})),
+				)),
 				Div(Class("mt-7 grid gap-3 sm:grid-cols-3"),
 					If(cabin.AcceptsDayUse, DetailItem("Pasadía", "$"+helpers.FormatCOP(cabin.DayPrice)+" COP", cabin.DayStart+" a "+cabin.DayEnd)),
 					If(cabin.AcceptsOvernight, DetailItem("Estadía", "$"+helpers.FormatCOP(cabin.NightPrice)+" COP", "Por noche · entrada "+cabin.CheckIn+" · salida "+cabin.CheckOut)),

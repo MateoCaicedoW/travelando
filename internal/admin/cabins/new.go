@@ -12,18 +12,23 @@ import (
 )
 
 func New(w http.ResponseWriter, r *http.Request) {
-	svc := services.ServiceSetFromCtx(r.Context()).Owners
-	if svc == nil {
+	set := services.ServiceSetFromCtx(r.Context())
+	if set.Owners == nil || set.Amenities == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
 	}
-	owners, err := svc.Owners()
+	owners, err := set.Owners.Owners()
 	if err != nil {
 		slog.Error("loading cabin owners", "error", err)
 		http.Error(w, "No se pudo cargar el formulario", http.StatusInternalServerError)
 		return
 	}
-	dialog := components.CustomDialog(components.DialogProps{Yield: newEl(defaultNewCabin(), owners, nil)})
+	amenityTypes, err := set.Amenities.TypesForOwner(0)
+	if err != nil {
+		server.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+	dialog := components.CustomDialog(components.DialogProps{Yield: newEl(defaultNewCabin(), owners, amenityTypes, nil)})
 	if err := dialog.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

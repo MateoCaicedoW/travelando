@@ -20,6 +20,7 @@ type ServiceSet struct {
 	Calendar     CalendarService
 	Commissions  CommissionService
 	Owners       OwnerService
+	Amenities    AmenityService
 }
 
 type cabinService struct{ serviceDB }
@@ -40,13 +41,15 @@ func NewCalendarService(conn db.ConnFn) CalendarService { return &calendarServic
 func NewCommissionService(conn db.ConnFn) CommissionService {
 	return &commissionService{serviceDB{conn}}
 }
-func NewOwnerService(conn db.ConnFn) OwnerService { return &ownerService{serviceDB{conn}} }
+func NewOwnerService(conn db.ConnFn) OwnerService     { return &ownerService{serviceDB{conn}} }
+func NewAmenityService(conn db.ConnFn) AmenityService { return &amenityService{serviceDB{conn}} }
 
 func NewServiceSet(conn db.ConnFn) ServiceSet {
 	return ServiceSet{
 		Cabins: NewCabinService(conn), Availability: NewAvailabilityService(conn),
 		Inquiries: NewInquiryService(conn), Blocks: NewBlockService(conn),
 		Calendar: NewCalendarService(conn), Commissions: NewCommissionService(conn), Owners: NewOwnerService(conn),
+		Amenities: NewAmenityService(conn),
 	}
 }
 
