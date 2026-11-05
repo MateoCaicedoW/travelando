@@ -1,0 +1,5 @@
+.env
+.git
+bin
+node_modules
+internal/system/assets/dist

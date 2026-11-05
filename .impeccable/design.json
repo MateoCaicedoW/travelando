@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T14:01:08Z",
+  "title": "Design System: Travelando",
+  "extensions": {
+    "colorMeta": {
+      "trail-orange": { "role": "primary", "displayName": "Trail Orange", "canonical": "#ff7300", "tonalRamp": ["oklch(15% 0.04 36)", "oklch(26% 0.08 36)", "oklch(37% 0.12 36)", "oklch(48% 0.16 36)", "oklch(59% 0.2 36)", "oklch(70% 0.2 36)", "oklch(82% 0.1 36)", "oklch(95% 0.02 36)"] },
+      "burnt-trail": { "role": "primary", "displayName": "Burnt Trail", "canonical": "#c24200", "tonalRamp": ["oklch(15% 0.03 45)", "oklch(26% 0.06 45)", "oklch(37% 0.09 45)", "oklch(48% 0.12 45)", "oklch(59% 0.15 45)", "oklch(70% 0.15 45)", "oklch(82% 0.08 45)", "oklch(95% 0.02 45)"] },
+      "warm-graphite": { "role": "neutral", "displayName": "Warm Graphite", "canonical": "#272820", "tonalRamp": ["oklch(15% 0.008 105)", "oklch(26% 0.012 105)", "oklch(37% 0.016 105)", "oklch(48% 0.02 105)", "oklch(59% 0.02 105)", "oklch(70% 0.016 105)", "oklch(82% 0.01 105)", "oklch(95% 0.004 105)"] },
+      "soft-olive-gray": { "role": "neutral", "displayName": "Soft Olive Gray", "canonical": "#66665f", "tonalRamp": ["oklch(15% 0.006 105)", "oklch(26% 0.01 105)", "oklch(37% 0.014 105)", "oklch(48% 0.018 105)", "oklch(59% 0.018 105)", "oklch(70% 0.014 105)", "oklch(82% 0.009 105)", "oklch(95% 0.004 105)"] },
+      "cabin-cream": { "role": "neutral", "displayName": "Cabin Cream", "canonical": "#fff8f0", "tonalRamp": ["oklch(15% 0.008 70)", "oklch(26% 0.012 70)", "oklch(37% 0.016 70)", "oklch(48% 0.02 70)", "oklch(59% 0.02 70)", "oklch(70% 0.018 70)", "oklch(82% 0.014 70)", "oklch(95% 0.01 70)"] },
+      "sandstone-line": { "role": "neutral", "displayName": "Sandstone Line", "canonical": "#e9e0d6", "tonalRamp": ["oklch(15% 0.008 70)", "oklch(26% 0.012 70)", "oklch(37% 0.016 70)", "oklch(48% 0.02 70)", "oklch(59% 0.02 70)", "oklch(70% 0.018 70)", "oklch(82% 0.014 70)", "oklch(95% 0.01 70)"] },
+      "pine-green": { "role": "secondary", "displayName": "Pine Green", "canonical": "#376b4c", "tonalRamp": ["oklch(15% 0.02 150)", "oklch(26% 0.04 150)", "oklch(37% 0.06 150)", "oklch(48% 0.08 150)", "oklch(59% 0.1 150)", "oklch(70% 0.1 150)", "oklch(82% 0.05 150)", "oklch(95% 0.01 150)"] },
+      "pine-mist": { "role": "secondary", "displayName": "Pine Mist", "canonical": "#edf4ee", "tonalRamp": ["oklch(15% 0.008 145)", "oklch(26% 0.012 145)", "oklch(37% 0.016 145)", "oklch(48% 0.02 145)", "oklch(59% 0.02 145)", "oklch(70% 0.018 145)", "oklch(82% 0.014 145)", "oklch(95% 0.01 145)"] },
+      "white": { "role": "neutral", "displayName": "White", "canonical": "#ffffff", "tonalRamp": ["oklch(15% 0 0)", "oklch(26% 0 0)", "oklch(37% 0 0)", "oklch(48% 0 0)", "oklch(59% 0 0)", "oklch(70% 0 0)", "oklch(82% 0 0)", "oklch(95% 0 0)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Homepage hero heading." },
+      "headline": { "displayName": "Headline", "purpose": "Page and section headings." },
+      "title": { "displayName": "Title", "purpose": "Card names and compact section titles." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, forms, and general reading." },
+      "label": { "displayName": "Label", "purpose": "Field labels, metadata, and section eyebrows." }
+    },
+    "shadows": [
+      { "name": "card-hover", "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", "purpose": "Hover lift on interactive cabin cards." },
+      { "name": "report-surface", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Subtle separation for the inquiry report card." },
+      { "name": "input-focus", "value": "0 0 0 3px rgb(255 115 0 / 16%)", "purpose": "Orange-tinted focus ring on fields." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "150ms ease", "purpose": "Border and shadow response on form focus." },
+      { "name": "image-hover", "value": "500ms", "purpose": "Slow, subtle cabin-image zoom on card hover." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-contrast action for search, submission, and saving.",
+      "html": "<button class=\"ds-btn-primary\">Buscar cabañas</button>",
+      "css": ".ds-btn-primary { background: var(--color-brand); color: var(--color-ink); border: 0; border-radius: 8px; min-height: 48px; padding: 12px 20px; font: 800 16px/1.5 var(--font-sans); transition: filter 150ms cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; } .ds-btn-primary:hover { filter: brightness(.9); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }"
+    },
+    {
+      "name": "Strong Admin Button",
+      "kind": "button",
+      "refersTo": "button-strong",
+      "description": "High-emphasis save or report action in admin flows.",
+      "html": "<button class=\"ds-btn-strong\">Guardar</button>",
+      "css": ".ds-btn-strong { background: var(--color-brand-dark); color: var(--color-white); border: 0; border-radius: 8px; min-height: 48px; padding: 12px 20px; font: 800 16px/1.5 var(--font-sans); transition: filter 150ms ease; cursor: pointer; } .ds-btn-strong:hover { filter: brightness(.9); } .ds-btn-strong:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Lower-emphasis action beside the primary action.",
+      "html": "<button class=\"ds-btn-secondary\">Administrar dueños</button>",
+      "css": ".ds-btn-secondary { background: var(--color-white); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: 8px; min-height: 44px; padding: 8px 16px; font: 700 14px/1.5 var(--font-sans); transition: border-color 150ms ease, color 150ms ease; cursor: pointer; } .ds-btn-secondary:hover { border-color: var(--color-brand); color: var(--color-brand-dark); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labeled text entry for guest requests and admin forms.",
+      "html": "<label class=\"ds-field\"><span>Tu nombre</span><input class=\"ds-input\" type=\"text\" placeholder=\"Nombre y apellido\"></label>",
+      "css": ".ds-field { display: grid; gap: 6px; color: var(--color-ink); font: 700 14px/1.5 var(--font-sans); } .ds-input { width: 100%; background: var(--color-white); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: 12px; padding: 12px 16px; font: 400 16px/1.5 var(--font-sans); transition: border-color 150ms ease, box-shadow 150ms ease; } .ds-input::placeholder { color: var(--color-muted); } .ds-input:focus { border-color: var(--color-brand); outline: none; box-shadow: 0 0 0 3px rgb(255 115 0 / 16%); }"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Shared header brand and compact guest/admin links.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><span class=\"ds-mark\">T</span><span>Travelando</span></a><a class=\"ds-nav-admin\" href=\"#\">Administrar</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--color-cream); border-bottom: 1px solid var(--color-line); padding: 16px 24px; font: 700 14px/1.5 var(--font-sans); } .ds-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--color-ink); font-size: 22px; font-weight: 800; text-decoration: none; } .ds-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-brand); color: var(--color-white); font-size: 18px; font-weight: 900; } .ds-nav-admin { border: 1px solid var(--color-line); border-radius: 9999px; background: var(--color-white); color: var(--color-ink); padding: 8px 16px; text-decoration: none; } .ds-nav-admin:hover { border-color: var(--color-brand); color: var(--color-brand-dark); } .ds-nav-admin:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 3px; }"
+    },
+    {
+      "name": "Cabin Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Catalog card with location, stay type, price, and a direct detail action.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-image\">Refugio natural</div><div class=\"ds-card-body\"><p class=\"ds-eyebrow\">Cundinamarca</p><h3>Refugio del río</h3><p class=\"ds-card-copy\">Una pausa cerca de la naturaleza.</p><div class=\"ds-card-bottom\"><strong>$180.000</strong><button class=\"ds-btn-primary\">Ver cabaña</button></div></div></article>",
+      "css": ".ds-card { overflow: hidden; border: 1px solid var(--color-line); border-radius: 16px; background: var(--color-white); transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1); font-family: var(--font-sans); } .ds-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1); } .ds-card-image { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--color-cream); color: var(--color-muted); font-size: 14px; font-weight: 700; } .ds-card-body { padding: 20px; } .ds-eyebrow { margin: 0; color: var(--color-brand-dark); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; } .ds-card h3 { margin: 4px 0 0; color: var(--color-ink); font-size: 20px; font-weight: 800; } .ds-card-copy { color: var(--color-muted); font-size: 14px; line-height: 1.5; } .ds-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-line); padding-top: 16px; color: var(--color-ink); } .ds-card-bottom .ds-btn-primary { min-height: 44px; padding: 8px 16px; font-size: 14px; }"
+    },
+    {
+      "name": "Success Chip",
+      "kind": "chip",
+      "refersTo": "chip-success",
+      "description": "Compact status badge for a confirmed reservation.",
+      "html": "<span class=\"ds-chip-success\">Reservada</span>",
+      "css": ".ds-chip-success { display: inline-flex; align-items: center; border-radius: 9999px; background: var(--color-forest); color: var(--color-white); padding: 4px 10px; font: 700 12px/1.5 var(--font-sans); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Warm Trailhead",
+    "overview": "Travelando feels like a friendly, practical starting point for finding an escape. Warm cream and orange create an inviting catalog; direct headings, clear controls, and sturdy action buttons keep the path to a cabin easy to follow. The system uses a native sans-serif voice rather than a decorative display face, so the interface stays familiar across guest and admin tasks.\n\nThe guest catalog is welcoming and image-led where cabin photography exists. Administrative screens reuse the same surfaces and controls, with denser tables and lists that prioritize scanability. Pine green marks successful or confirmed states. The visual mood is warm and direct, not a polished luxury-resort aesthetic.",
+    "keyCharacteristics": [
+      "Warm cream surfaces, orange actions, and graphite text.",
+      "Compact labels and bold, tightly tracked headings.",
+      "Rounded, thin-bordered cards with restrained depth.",
+      "Responsive, utility-led layouts shared by guest and admin pages."
+    ],
+    "rules": [
+      { "name": "The Orange-Action Rule", "body": "Trail Orange signals discovery and focus; Burnt Trail carries filled actions and strong text for contrast.", "section": "colors" },
+      { "name": "The Border-First Rule", "body": "Keep cards flat at rest; reserve shadow for hover feedback or the report surface that needs a clearer boundary.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use Trail Orange for brand and discovery cues, and Burnt Trail for filled primary actions.",
+      "Do use Pine Green and Pine Mist for successful or confirmed states.",
+      "Do preserve the shared card, form, and button language across guest and admin screens.",
+      "Do let responsive grids add columns at established breakpoints rather than shrinking content too far."
+    ],
+    "donts": [
+      "Don't turn the cabin catalog into a polished luxury-resort aesthetic.",
+      "Don't add decorative colors or a separate display font without a deliberate system change.",
+      "Don't use shadow as the default way to separate cards; borders and tonal surfaces do that work."
+    ]
+  }
+}

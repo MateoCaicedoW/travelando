@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #ff7300;
+  --color-brand-dark: #c24200;
+  --color-ink: #272820;
+  --color-muted: #66665f;
+  --color-cream: #fff8f0;
+  --color-line: #e9e0d6;
+  --color-forest: #376b4c;
+  --color-forest-soft: #edf4ee;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  color: white;
+  background: var(--color-brand-dark);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-color: var(--color-line);
+  border-radius: 0.75rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(255 115 0 / 16%);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-dark);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.modal-animate-in .modal-content {
+  animation: modal-in 200ms ease-out;
+}
+
+.modal-animate-in .modal-backdrop {
+  animation: modal-backdrop-in 200ms ease-out;
+}
+
+.modal-animate-out .modal-content {
+  animation: modal-out 150ms ease-in forwards;
+}
+
+.modal-animate-out .modal-backdrop {
+  animation: modal-backdrop-out 150ms ease-in forwards;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modal-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-animate-in .modal-content,
+  .modal-animate-in .modal-backdrop,
+  .modal-animate-out .modal-content,
+  .modal-animate-out .modal-backdrop {
+    animation: none;
+  }
+}
+
+@source "../../../**/*.go";
+@source "../js/**/*.js";
+
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
