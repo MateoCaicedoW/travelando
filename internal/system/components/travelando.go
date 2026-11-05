@@ -20,6 +20,13 @@ func brandAt(href string) Node {
 	)
 }
 
+func adminBrand() Node {
+	return A(Href("/admin/"), Attr("aria-label", "Travelando"), Class("inline-flex min-w-0 items-center gap-2.5 font-extrabold tracking-tight text-ink"),
+		Span(Class("grid size-9 shrink-0 place-items-center rounded-xl bg-brand text-lg font-black text-ink"), Text("T")),
+		Span(Attr("data-admin-navigation-target", "brandLabel"), Class("text-xl"), Text("Travelando")),
+	)
+}
+
 func SiteHeader() Node {
 	return Header(Class("border-b border-line bg-cream"),
 		Div(Class("mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8 sm:py-4"),
@@ -39,13 +46,55 @@ type portalLink struct {
 }
 
 func AdminHeader(path string) Node {
-	return portalHeader("/admin/", "/admin/logout", path, "Navegación de administración",
+	links := []portalLink{
 		portalLink{"Solicitudes", "/admin/", lucide.ClipboardList(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Calendario", "/admin/calendar", lucide.CalendarDays(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Cabañas", "/admin/cabins", lucide.BedDouble(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Amenidades", "/admin/amenities", lucide.Sparkles(Class("size-4"), Attr("aria-hidden", "true"))},
 		portalLink{"Dueños", "/admin/owners", lucide.UsersRound(Class("size-4"), Attr("aria-hidden", "true"))},
+	}
+	return Aside(ID("admin-sidebar"), Attr("aria-label", "Navegación de administración"), Attr("data-admin-navigation-target", "sidebar"), Class("fixed inset-y-0 left-0 z-50 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-cream px-4 py-5 transition-[width] duration-200 lg:sticky lg:top-0 lg:flex"),
+		Div(Class("flex flex-col border-b border-line pb-4"),
+			adminBrand(),
+			Div(Attr("data-admin-navigation-target", "collapseRow"), Class("hidden justify-end pt-2 lg:flex"),
+				Button(Type("button"), Attr("aria-label", "Contraer navegación"), Title("Contraer navegación"), Attr("data-admin-navigation-target", "collapseButton"), Attr("data-action", "click->admin-navigation#toggleCompact"), Class("inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-white hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
+					lucide.ChevronLeft(Class("size-4"), Attr("data-admin-navigation-target", "collapseIcon"), Attr("aria-hidden", "true")),
+					lucide.ChevronRight(Class("hidden size-4"), Attr("data-admin-navigation-target", "expandIcon"), Attr("aria-hidden", "true")),
+				),
+			),
+		),
+		Div(Attr("data-admin-navigation-target", "portalSection"), Class("px-3 pt-5 pb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-muted"), Text("Administración")),
+		Nav(Attr("aria-label", "Secciones de administración"), Class("grid gap-1"), Map(links, func(link portalLink) Node {
+			active := path == link.href || link.href != "/admin/" && strings.HasPrefix(path, link.href+"/")
+			class := "flex min-h-11 items-center justify-start gap-3 rounded-lg px-3 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"
+			if active {
+				class += " bg-white text-brand-dark"
+			} else {
+				class += " text-muted hover:bg-white hover:text-ink"
+			}
+			return A(Href(link.href), If(active, Attr("aria-current", "page")), Attr("aria-label", link.label), Title(link.label), Attr("data-admin-navigation-target", "link"), Attr("data-action", "click->admin-navigation#closeMobile"), Class(class), link.icon, Span(Attr("data-admin-navigation-target", "linkLabel"), Text(link.label)))
+		})),
+		Div(Class("mt-auto border-t border-line pt-4"),
+			Form(Method("post"), Action("/admin/logout"),
+				Button(Type("submit"), Attr("aria-label", "Cerrar sesión"), Attr("data-admin-navigation-target", "logoutButton"), Class("flex min-h-11 w-full items-center justify-start gap-3 rounded-lg px-3 text-sm font-bold text-muted transition hover:bg-white hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
+					lucide.LogOut(Class("size-4 shrink-0"), Attr("aria-hidden", "true")), Span(Attr("data-admin-navigation-target", "logoutLabel"), Text("Salir")),
+				),
+			),
+		),
 	)
+}
+
+func AdminMobileBar() Node {
+	return Header(Class("flex min-h-16 items-center gap-3 border-b border-line bg-white px-5 lg:hidden"),
+		Button(Type("button"), Attr("aria-label", "Abrir navegación"), Attr("aria-controls", "admin-sidebar"), Attr("aria-expanded", "false"), Attr("data-admin-navigation-target", "mobileButton"), Attr("data-action", "click->admin-navigation#toggleMobile"), Class("inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"),
+			lucide.Menu(Class("size-5"), Attr("aria-hidden", "true")),
+		),
+		adminBrand(),
+	)
+}
+
+func AdminNavigationBackdrop() Node {
+	return Button(Type("button"), Attr("aria-label", "Cerrar navegación"), Attr("data-admin-navigation-target", "backdrop"), Attr("data-action", "click->admin-navigation#closeMobile"), Class("fixed inset-0 z-40 hidden bg-ink/40 lg:hidden"))
 }
 
 func OwnerHeader(path string) Node {

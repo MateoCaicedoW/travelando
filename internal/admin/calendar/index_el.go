@@ -14,8 +14,9 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-var weekdays = [...]string{"Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"}
-var weekdayNames = [...]string{"domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"}
+type weekday struct{ short, name string }
+
+var weekdays = [...]weekday{{"Dom", "domingo"}, {"Lun", "lunes"}, {"Mar", "martes"}, {"Mié", "miércoles"}, {"Jue", "jueves"}, {"Vie", "viernes"}, {"Sáb", "sábado"}}
 
 func calendarPageEl(view calendarView) Node {
 	return Div(Class("mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12"),
@@ -42,8 +43,8 @@ func calendarViewEl(view calendarView) Node {
 				Div(Class("overflow-visible p-2 sm:p-4"),
 					Table(Class("w-full table-fixed border-separate border-spacing-1.5"),
 						Caption(Class("sr-only"), Textf("Calendario de ocupación de %s %d", view.MonthName, view.Year)),
-						THead(Tr(Map(make([]int, len(weekdays)), func(i int) Node {
-							return Th(Scope("col"), Attr("aria-label", weekdayNames[i]), Class("pb-2 text-center text-xs font-extrabold uppercase tracking-wide text-muted sm:text-sm"), Text(weekdays[i]))
+						THead(Tr(Map(weekdays[:], func(day weekday) Node {
+							return Th(Scope("col"), Attr("aria-label", day.name), Class("pb-2 text-center text-xs font-extrabold uppercase tracking-wide text-muted sm:text-sm"), Text(day.short))
 						}))),
 						TBody(Map(view.Weeks, func(week []time.Time) Node {
 							return Tr(Group(Map(week, func(day time.Time) Node { return calendarDayEl(day, view) })))

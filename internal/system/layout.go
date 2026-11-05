@@ -54,15 +54,29 @@ func (props Layout) New(request ...*http.Request) Node {
 	case PortalBare:
 		header, footer = nil, nil
 	}
+	var page Node
+	if props.Portal == PortalAdmin {
+		page = Div(Attr("data-controller", "admin-navigation"), Class("flex min-h-screen w-full"),
+			components.AdminNavigationBackdrop(),
+			components.AdminHeader(path),
+			Div(Attr("data-admin-navigation-target", "content"), Class("flex min-w-0 flex-1 flex-col"),
+				components.AdminMobileBar(),
+				Div(ID("global-flash-container"), toast),
+				Main(Class("w-full flex-1"), props.Yield),
+			),
+		)
+	} else {
+		page = Div(Class("flex min-h-screen flex-col"),
+			If(header != nil, header),
+			Div(ID("global-flash-container"), toast),
+			Main(Class("w-full flex-1"), props.Yield),
+			If(footer != nil, footer),
+		)
+	}
 	return Doctype(HTML(Lang("es"), Class("h-full"),
 		Head(head...),
 		Body(Class("min-h-full bg-white font-sans text-ink antialiased"),
-			Div(Class("flex min-h-screen flex-col"),
-				If(header != nil, header),
-				Div(ID("global-flash-container"), toast),
-				Main(Class("w-full flex-1"), props.Yield),
-				If(footer != nil, footer),
-			),
+			page,
 		),
 	))
 }

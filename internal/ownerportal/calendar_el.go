@@ -40,8 +40,8 @@ func ownerCalendarEl(view ownerCalendarView) Node {
 		If(len(view.Cabins) > 0, Div(Class("overflow-x-auto p-2 sm:p-4"),
 			Table(Class("w-full table-fixed border-separate border-spacing-1.5"),
 				Caption(Class("sr-only"), Textf("Calendario de tus cabañas, %s %d", view.MonthName, view.Year)),
-				THead(Tr(Map(make([]int, len(ownerWeekdays)), func(i int) Node {
-					return Th(Scope("col"), Class("pb-2 text-center text-xs font-extrabold uppercase tracking-wide text-muted"), Text(ownerWeekdays[i]))
+				THead(Tr(Map(ownerWeekdays[:], func(day string) Node {
+					return Th(Scope("col"), Class("pb-2 text-center text-xs font-extrabold uppercase tracking-wide text-muted"), Text(day))
 				}))),
 				TBody(Map(view.Weeks, func(week []time.Time) Node {
 					return Tr(Group(Map(week, func(day time.Time) Node { return ownerDayEl(day, view) })))

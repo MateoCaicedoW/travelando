@@ -25,7 +25,7 @@ func renderLayout(t *testing.T, portal string) string {
 
 func TestAdminLayoutUsesAdminNavigationWithoutExploreChrome(t *testing.T) {
 	html := renderLayout(t, PortalAdmin)
-	for _, want := range []string{"Solicitudes", "Calendario", "Cabañas", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`} {
+	for _, want := range []string{"Solicitudes", "Calendario", "Cabañas", "Amenidades", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`, `aria-label="Abrir navegación"`, `aria-controls="admin-sidebar"`, `data-controller="admin-navigation"`, `id="admin-sidebar"`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("admin layout missing %q", want)
 		}
@@ -48,6 +48,9 @@ func TestOwnerLayoutUsesOwnerNavigationWithoutExploreChrome(t *testing.T) {
 		if strings.Contains(html, unwanted) {
 			t.Errorf("owner layout unexpectedly contains %q", unwanted)
 		}
+	}
+	if strings.Contains(html, `data-controller="admin-navigation"`) || strings.Contains(html, `id="admin-sidebar"`) {
+		t.Fatal("owner layout unexpectedly contains admin sidebar")
 	}
 }
 
