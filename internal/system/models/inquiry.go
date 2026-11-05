@@ -27,6 +27,9 @@ type Inquiry struct {
 	StayType         StayType
 	DateFrom         string
 	DateTo           string
+	StartTime        string
+	EndTime          string
+	CleaningHours    int
 	Guests           int
 	Estimated        int64
 	Status           InquiryStatus

@@ -48,6 +48,7 @@ func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldEr
 			),
 			Div(Class("grid gap-4 py-5 sm:grid-cols-2"),
 				SummaryItem("Plan y fechas", stay+" · "+dateText),
+				SummaryItem("Horario", helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime)),
 				SummaryItem("Huéspedes", strconv.Itoa(inquiry.Guests)),
 				SummaryItem("Precio estimado", "$"+helpers.FormatCOP(inquiry.Estimated)+" COP"),
 				If(inquiry.Status == models.InquiryReserved, SummaryItem("Total acordado", "$"+helpers.FormatCOP(inquiry.FinalTotal)+" COP")),

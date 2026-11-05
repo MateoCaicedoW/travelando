@@ -181,7 +181,7 @@ func inquiryRow(inquiry models.Inquiry) Node {
 	return Tr(ID("inquiry-row-"+strconv.FormatInt(inquiry.ID, 10)),
 		Td(Class("px-5 py-4 align-top"), P(Class("font-bold text-ink"), Text(inquiry.GuestName)), P(Class("mt-1 text-xs text-muted"), Text(inquiry.GuestPhone))),
 		Td(Class("px-5 py-4 align-top"), P(Class("font-bold text-ink"), Text(inquiry.CabinName)), P(Class("mt-1 text-xs text-muted"), Text(inquiry.OwnerName))),
-		Td(Class("px-5 py-4 align-top text-muted"), P(Text(dateText)), P(Class("mt-1 text-xs"), Text(helpers.StayTypeLabel(inquiry.StayType)+" · "+strconv.Itoa(inquiry.Guests)+" huéspedes"))),
+		Td(Class("px-5 py-4 align-top text-muted"), P(Text(dateText)), P(Class("mt-1 text-xs"), Text(helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime))), P(Class("mt-1 text-xs"), Text(helpers.StayTypeLabel(inquiry.StayType)+" · "+strconv.Itoa(inquiry.Guests)+" huéspedes"))),
 		Td(Class("px-5 py-4 align-top"), Span(Class("inline-flex rounded-full px-2.5 py-1 text-xs font-bold "+statusClass), Text(status))),
 		Td(Class("px-5 py-4 text-right align-top font-extrabold text-ink"),
 			P(Text(commission)),

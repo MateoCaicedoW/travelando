@@ -44,12 +44,12 @@ func newCalendarView(year int, month time.Month, data services.CalendarData, now
 	monthStart := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 	monthEnd := monthStart.AddDate(0, 1, 0)
 	for _, entry := range data.Entries {
-		from, errFrom := time.Parse("2006-01-02", entry.DateFrom)
-		to, errTo := time.Parse("2006-01-02", entry.DateTo)
-		if errFrom != nil || errTo != nil {
+		from, to, ok := entry.OccupiedRange()
+		if !ok {
 			continue
 		}
-		for day := maxDate(from, monthStart); day.Before(minDate(to, monthEnd)); day = day.AddDate(0, 0, 1) {
+		firstDay := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+		for day := maxDate(firstDay, monthStart); day.Before(monthEnd) && day.Before(to); day = day.AddDate(0, 0, 1) {
 			key := day.Format("2006-01-02")
 			view.Entries[key] = append(view.Entries[key], entry)
 			if counts[entry.CabinID] == nil {
@@ -87,13 +87,6 @@ func monthURL(date time.Time) string {
 
 func maxDate(a, b time.Time) time.Time {
 	if a.After(b) {
-		return a
-	}
-	return b
-}
-
-func minDate(a, b time.Time) time.Time {
-	if a.Before(b) {
 		return a
 	}
 	return b

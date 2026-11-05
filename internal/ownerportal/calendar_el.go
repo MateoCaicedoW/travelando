@@ -90,7 +90,7 @@ func ownerCalendarEntryEl(entry services.CalendarEntry, dayKey string, view owne
 	}
 	content := []Node{
 		Span(Attr("aria-hidden", "true"), Class("size-2 shrink-0 rounded-full "+color)),
-		Span(Attr("title", entry.CabinName+" · "+ownerEntryLabel(entry)), Class("min-w-0 flex-1 truncate text-[0.6rem] font-semibold text-ink sm:text-xs"), Text(entry.CabinName+" · "+label)),
+		Span(Attr("title", entry.CabinName+" · "+ownerEntryLabel(entry)+ownerEntrySchedule(entry)), Attr("aria-label", entry.CabinName+" · "+ownerEntryLabel(entry)+ownerEntrySchedule(entry)), Class("min-w-0 flex-1 truncate text-[0.6rem] font-semibold text-ink sm:text-xs"), Text(entry.CabinName+" · "+label+ownerEntrySchedule(entry))),
 	}
 	if entry.IsBlock && entry.BlockSource == "external" && entry.DateFrom == dayKey {
 		deleteAction := "/owner/blocks/" + strconv.FormatInt(entry.BlockID, 10) + "/delete?month=" + strconv.Itoa(int(view.Month)) + "&year=" + strconv.Itoa(view.Year)
@@ -161,4 +161,27 @@ func ownerEntryLabel(entry services.CalendarEntry) string {
 		return "Reserva externa"
 	}
 	return "Bloqueo de Travelando"
+}
+
+func ownerEntrySchedule(entry services.CalendarEntry) string {
+	if entry.IsBlock {
+		return ""
+	}
+	return " · " + ownerCalendarClock(entry.StartAt) + "–" + ownerCalendarClock(entry.EndAt) + " · lista " + ownerCalendarDateTime(entry.ReadyAt)
+}
+
+func ownerCalendarDateTime(value string) string {
+	if parsed, err := time.Parse(time.DateTime, value); err == nil {
+		return parsed.Format("02/01 15:04")
+	}
+	return value
+}
+
+func ownerCalendarClock(value string) string {
+	for _, layout := range []string{time.DateTime, "2006-01-02 15:04"} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed.Format("15:04")
+		}
+	}
+	return value
 }

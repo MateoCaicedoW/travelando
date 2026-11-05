@@ -12,15 +12,15 @@ var ownerMonthNames = [...]string{"", "Enero", "Febrero", "Marzo", "Abril", "May
 var ownerWeekdays = [...]string{"Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"}
 
 type ownerCalendarView struct {
-	Year           int
-	Month          time.Month
-	MonthName      string
-	Today          time.Time
-	Weeks          [][]time.Time
-	Entries        map[string][]services.CalendarEntry
-	Cabins         []models.Cabin
-	Previous       time.Time
-	Next           time.Time
+	Year      int
+	Month     time.Month
+	MonthName string
+	Today     time.Time
+	Weeks     [][]time.Time
+	Entries   map[string][]services.CalendarEntry
+	Cabins    []models.Cabin
+	Previous  time.Time
+	Next      time.Time
 }
 
 func newOwnerCalendarView(year int, month time.Month, data services.CalendarData, now time.Time) ownerCalendarView {
@@ -34,12 +34,12 @@ func newOwnerCalendarView(year int, month time.Month, data services.CalendarData
 	monthStart := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 	monthEnd := monthStart.AddDate(0, 1, 0)
 	for _, entry := range data.Entries {
-		from, errFrom := time.Parse(time.DateOnly, entry.DateFrom)
-		to, errTo := time.Parse(time.DateOnly, entry.DateTo)
-		if errFrom != nil || errTo != nil {
+		from, to, ok := entry.OccupiedRange()
+		if !ok {
 			continue
 		}
-		for day := maxOwnerDate(from, monthStart); day.Before(minOwnerDate(to, monthEnd)); day = day.AddDate(0, 0, 1) {
+		firstDay := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.UTC)
+		for day := maxOwnerDate(firstDay, monthStart); day.Before(monthEnd) && day.Before(to); day = day.AddDate(0, 0, 1) {
 			key := day.Format(time.DateOnly)
 			view.Entries[key] = append(view.Entries[key], entry)
 		}
@@ -68,13 +68,6 @@ func ownerMonthURL(date time.Time) string {
 
 func maxOwnerDate(a, b time.Time) time.Time {
 	if a.After(b) {
-		return a
-	}
-	return b
-}
-
-func minOwnerDate(a, b time.Time) time.Time {
-	if a.Before(b) {
 		return a
 	}
 	return b

@@ -42,6 +42,7 @@ func cabinFormErrorsFor(r *http.Request, requireOwner bool) validate.Errors {
 		validate.Field("day_end", validate.Required("Ingresa la hora de fin."), validCabinTime("Ingresa una hora válida."), afterCabinTime(r.FormValue("day_start"))),
 		validate.Field("check_in", validate.Required("Ingresa la hora de entrada."), validCabinTime("Ingresa una hora válida.")),
 		validate.Field("check_out", validate.Required("Ingresa la hora de salida."), validCabinTime("Ingresa una hora válida.")),
+		validate.Field("cleaning_hours", validate.Required("Indica las horas de aseo."), integerRange(0, 24, "Ingresa un tiempo de aseo entre 0 y 24 horas.")),
 	))
 	if requireOwner {
 		ownerErrors := form.Validate(r, validate.Fields(validate.Field("owner_id", validate.Required("Asigna un dueño."), validOwnerID)))
@@ -110,6 +111,14 @@ func cabinFromRequest(r *http.Request, id int64, requireOwner bool, ownerID int6
 			cabin.NightPrice = value
 		}
 	}
+	if !fieldErrors.Has("cleaning_hours") {
+		value, err := strconv.Atoi(r.FormValue("cleaning_hours"))
+		if err != nil {
+			addCabinFormError(fieldErrors, "cleaning_hours", "Ingresa un tiempo de aseo entre 0 y 24 horas.")
+		} else {
+			cabin.CleaningHours = value
+		}
+	}
 	return cabin, fieldErrors
 }
 
@@ -151,6 +160,19 @@ func positiveInteger(message string) validate.ValidatorFn {
 		}
 		value, err := strconv.Atoi(values[0])
 		if err != nil || value < 1 {
+			return errors.New(message)
+		}
+		return nil
+	}
+}
+
+func integerRange(min, max int, message string) validate.ValidatorFn {
+	return func(values []string) error {
+		if missing(values) {
+			return nil
+		}
+		value, err := strconv.Atoi(values[0])
+		if err != nil || value < min || value > max {
 			return errors.New(message)
 		}
 		return nil

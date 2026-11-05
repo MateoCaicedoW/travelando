@@ -63,8 +63,8 @@ func createRequest(w http.ResponseWriter, r *http.Request) (string, validate.Err
 	}
 	// shortcut: report token is visible to guest in the outgoing WhatsApp text, scoped to one inquiry; add contact authentication if that access becomes unacceptable.
 	reportURL := strings.TrimRight(baseURL, "/") + "/report/" + token
-	message := fmt.Sprintf("Hola, quiero consultar por %s.\n\nNombre: %s\nTeléfono: %s\nPlan: %s\nFechas: %s\nHuéspedes: %d\nPrecio estimado: $%s COP\n\nReferencia para reportar el resultado: %s",
-		inquiry.CabinName, inquiry.GuestName, inquiry.GuestPhone, stay, helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo), inquiry.Guests, helpers.FormatCOP(inquiry.Estimated), reportURL)
+	message := fmt.Sprintf("Hola, quiero consultar por %s.\n\nNombre: %s\nTeléfono: %s\nPlan: %s\nFechas: %s\nHorario: %s\nHuéspedes: %d\nPrecio estimado: $%s COP\n\nReferencia para reportar el resultado: %s",
+		inquiry.CabinName, inquiry.GuestName, inquiry.GuestPhone, stay, helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo), helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime), inquiry.Guests, helpers.FormatCOP(inquiry.Estimated), reportURL)
 	return "https://wa.me/" + inquiry.WhatsApp + "?" + url.Values{"text": {message}}.Encode(), nil, nil
 }
 

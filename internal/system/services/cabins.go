@@ -105,7 +105,7 @@ func validateCabin(cabin *models.Cabin) error {
 	if cabin.CheckOut == "" {
 		cabin.CheckOut = "12:00"
 	}
-	if cabin.Name == "" || len(cabin.Name) > 120 || len(cabin.Description) > 2000 || len(cabin.Location) > 200 || len(cabin.LocationURL) > 2048 || len(cabin.CoverImage) > 2048 || cabin.IncludedGuests < 1 || cabin.DayPrice < 0 || cabin.DayPrice > MaxAmountCOP || cabin.NightPrice < 0 || cabin.NightPrice > MaxAmountCOP || cabin.ExtraGuestPrice < 0 || cabin.ExtraGuestPrice > MaxAmountCOP || !helpers.ValidTime(cabin.DayStart) || !helpers.ValidTime(cabin.DayEnd) || !helpers.ValidTime(cabin.CheckIn) || !helpers.ValidTime(cabin.CheckOut) || !helpers.ValidTimeRange(cabin.DayStart, cabin.DayEnd) || !helpers.ValidExternalURL(cabin.LocationURL) || !helpers.ValidExternalURL(cabin.CoverImage) {
+	if cabin.Name == "" || len(cabin.Name) > 120 || len(cabin.Description) > 2000 || len(cabin.Location) > 200 || len(cabin.LocationURL) > 2048 || len(cabin.CoverImage) > 2048 || cabin.IncludedGuests < 1 || cabin.DayPrice < 0 || cabin.DayPrice > MaxAmountCOP || cabin.NightPrice < 0 || cabin.NightPrice > MaxAmountCOP || cabin.ExtraGuestPrice < 0 || cabin.ExtraGuestPrice > MaxAmountCOP || cabin.CleaningHours < 0 || cabin.CleaningHours > 24 || !helpers.ValidTime(cabin.DayStart) || !helpers.ValidTime(cabin.DayEnd) || !helpers.ValidTime(cabin.CheckIn) || !helpers.ValidTime(cabin.CheckOut) || !helpers.ValidTimeRange(cabin.DayStart, cabin.DayEnd) || !helpers.ValidExternalURL(cabin.LocationURL) || !helpers.ValidExternalURL(cabin.CoverImage) {
 		return ErrInvalidInput
 	}
 	return nil
@@ -126,9 +126,9 @@ func (s *cabinService) CreateCabin(cabin *models.Cabin) error {
 		return err
 	}
 	result, err := db.Exec(`
-		INSERT INTO cabins (name, description, location, location_url, cover_image, included_guests, extra_guest_price, day_price, night_price, accepts_day_use, accepts_overnight, day_start, day_end, check_in, check_out, active, owner_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.Active, cabin.OwnerID)
+		INSERT INTO cabins (name, description, location, location_url, cover_image, included_guests, extra_guest_price, day_price, night_price, accepts_day_use, accepts_overnight, day_start, day_end, check_in, check_out, cleaning_hours, active, owner_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID)
 	if err != nil {
 		return err
 	}
@@ -167,9 +167,9 @@ func (s *cabinService) UpdateCabin(cabin *models.Cabin) error {
 	}
 	result, err := db.Exec(`
 		UPDATE cabins
-		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, active = ?, owner_id = ?
+		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?, owner_id = ?
 		WHERE id = ?
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.Active, cabin.OwnerID, cabin.ID)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.OwnerID, cabin.ID)
 	if err != nil {
 		return err
 	}
@@ -193,9 +193,9 @@ func (s *cabinService) UpdateCabinForOwner(ownerID int64, cabin *models.Cabin) e
 	}
 	result, err := db.Exec(`
 		UPDATE cabins
-		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, active = ?
+		SET name = ?, description = ?, location = ?, location_url = ?, cover_image = ?, included_guests = ?, extra_guest_price = ?, day_price = ?, night_price = ?, accepts_day_use = ?, accepts_overnight = ?, day_start = ?, day_end = ?, check_in = ?, check_out = ?, cleaning_hours = ?, active = ?
 		WHERE id = ? AND owner_id = ? AND EXISTS (SELECT 1 FROM owners WHERE id = ? AND active = 1)
-	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.Active, cabin.ID, ownerID, ownerID)
+	`, cabin.Name, cabin.Description, cabin.Location, cabin.LocationURL, cabin.CoverImage, cabin.IncludedGuests, cabin.ExtraGuestPrice, cabin.DayPrice, cabin.NightPrice, cabin.AcceptsDayUse, cabin.AcceptsOvernight, cabin.DayStart, cabin.DayEnd, cabin.CheckIn, cabin.CheckOut, cabin.CleaningHours, cabin.Active, cabin.ID, ownerID, ownerID)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ const cabinSearchSelect = `
 
 const cabinSelectColumns = `
 	c.id, COALESCE(c.owner_id, 0), COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), COALESCE(o.active, 0), c.name, c.description, c.location, c.location_url, c.cover_image,
-	c.included_guests, c.extra_guest_price, c.day_price, c.night_price, c.accepts_day_use, c.accepts_overnight, c.day_start, c.day_end, c.check_in, c.check_out, c.active
+    c.included_guests, c.extra_guest_price, c.day_price, c.night_price, c.accepts_day_use, c.accepts_overnight, c.day_start, c.day_end, c.check_in, c.check_out, c.cleaning_hours, c.active
 `
 
 type rowScanner interface {
@@ -253,7 +253,7 @@ func scanCabin(row rowScanner) (models.Cabin, error) {
 }
 
 func cabinScanArgs(cabin *models.Cabin) []any {
-	return []any{&cabin.ID, &cabin.OwnerID, &cabin.OwnerName, &cabin.OwnerWhatsApp, &cabin.OwnerActive, &cabin.Name, &cabin.Description, &cabin.Location, &cabin.LocationURL, &cabin.CoverImage, &cabin.IncludedGuests, &cabin.ExtraGuestPrice, &cabin.DayPrice, &cabin.NightPrice, &cabin.AcceptsDayUse, &cabin.AcceptsOvernight, &cabin.DayStart, &cabin.DayEnd, &cabin.CheckIn, &cabin.CheckOut, &cabin.Active}
+	return []any{&cabin.ID, &cabin.OwnerID, &cabin.OwnerName, &cabin.OwnerWhatsApp, &cabin.OwnerActive, &cabin.Name, &cabin.Description, &cabin.Location, &cabin.LocationURL, &cabin.CoverImage, &cabin.IncludedGuests, &cabin.ExtraGuestPrice, &cabin.DayPrice, &cabin.NightPrice, &cabin.AcceptsDayUse, &cabin.AcceptsOvernight, &cabin.DayStart, &cabin.DayEnd, &cabin.CheckIn, &cabin.CheckOut, &cabin.CleaningHours, &cabin.Active}
 }
 
 func requireUpdated(result sql.Result) error {

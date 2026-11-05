@@ -21,6 +21,7 @@ type Cabin struct {
 	DayEnd           string
 	CheckIn          string
 	CheckOut         string
+	CleaningHours    int
 	Active           bool
 }
 

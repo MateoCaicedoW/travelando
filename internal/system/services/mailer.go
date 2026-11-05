@@ -66,8 +66,9 @@ func SendReservationConfirmation(inquiry models.Inquiry) error {
 
 	stay := helpers.StayTypeLabel(inquiry.StayType)
 	dateText := helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)
+	scheduleText := helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime)
 	subject := mime.QEncoding.Encode("UTF-8", "Reserva confirmada | Travelando")
-	body := fmt.Sprintf("Hola %s,\n\nTu reserva quedó confirmada.\n\nCabaña: %s\nTipo: %s\nFechas: %s\nPersonas: %d\nTotal acordado: $%s COP\n\nEl pago se realiza directamente con el contacto de la cabaña.\n\nTravelando\n", inquiry.GuestName, inquiry.CabinName, stay, dateText, inquiry.Guests, helpers.FormatCOP(inquiry.FinalTotal))
+	body := fmt.Sprintf("Hola %s,\n\nTu reserva quedó confirmada.\n\nCabaña: %s\nTipo: %s\nFechas: %s\nHorario: %s\nPersonas: %d\nTotal acordado: $%s COP\n\nEl pago se realiza directamente con el contacto de la cabaña.\n\nTravelando\n", inquiry.GuestName, inquiry.CabinName, stay, dateText, scheduleText, inquiry.Guests, helpers.FormatCOP(inquiry.FinalTotal))
 	message := fmt.Sprintf("%s\r\n%s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
 		"From: "+fromAddress.String(),
 		"To: "+toAddress.String(),

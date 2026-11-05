@@ -188,6 +188,7 @@ func calendarEntryEl(entry services.CalendarEntry) Node {
 		P(Class("text-xs font-bold text-forest"), Text("Reserva confirmada · "+stay)),
 		P(Class("mt-1 text-xs text-muted"), Textf("%s · %d personas", entry.GuestName, entry.Guests)),
 		P(Class("mt-1 text-xs text-muted"), Text(dateLabel)),
+		P(Class("mt-1 text-xs text-muted"), Textf("%s–%s · lista desde %s", displayClock(entry.StartAt), displayClock(entry.EndAt), displayDateTime(entry.ReadyAt))),
 	)
 }
 
@@ -197,6 +198,24 @@ func displayDate(value string) string {
 		return value
 	}
 	return date.Format("02/01/2006")
+}
+
+func displayClock(value string) string {
+	for _, layout := range []string{time.DateTime, "2006-01-02 15:04"} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed.Format("15:04")
+		}
+	}
+	return value
+}
+
+func displayDateTime(value string) string {
+	for _, layout := range []string{time.DateTime, "2006-01-02 15:04"} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed.Format("02/01 15:04")
+		}
+	}
+	return value
 }
 
 func legendItem(color, label string) Node {

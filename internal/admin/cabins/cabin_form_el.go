@@ -112,6 +112,10 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 				Div(Class("rounded-2xl border border-line p-4 sm:p-6"),
 					H2(Class("text-base font-extrabold text-ink"), Text("Tarifas y horarios")),
 					P(Class("mt-1 text-sm text-muted"), Text("El cargo por huésped adicional se cobra una sola vez por reserva.")),
+					Div(Class("mt-5 max-w-sm"),
+						components.NumberFieldWithError("cleaning_hours", "cleaning_hours", "Horas de aseo después de cada reserva", fieldValue("cleaning_hours", strconv.Itoa(cabin.CleaningHours)), "0", "24", fieldErrors.ErrorStringFor("cleaning_hours")),
+						P(Class("mt-1 text-xs text-muted"), Text("La cabaña vuelve a estar lista al terminar este tiempo.")),
+					),
 					Div(Class("mt-5 grid items-start gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,2fr)]"),
 						components.NumberFieldWithError("extra_guest_price", "extra_guest_price", "Cargo por huésped adicional (COP)", fieldValue("extra_guest_price", strconv.FormatInt(cabin.ExtraGuestPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("extra_guest_price")),
 						Div(Class("space-y-1"),
@@ -162,7 +166,10 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 				H3(Class("text-sm font-extrabold text-ink"), Text("Reservas confirmadas")),
 				Div(Class("mt-2 divide-y divide-line"), Map(bookings, func(inquiry models.Inquiry) Node {
 					return Div(Class("flex flex-wrap items-center justify-between gap-2 py-3 text-sm"),
-						P(Class("font-bold text-ink"), Text(helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)), Span(Class("ml-2 font-normal text-muted"), Text(inquiry.GuestName))),
+						Div(
+							P(Class("font-bold text-ink"), Text(helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)), Span(Class("ml-2 font-normal text-muted"), Text(inquiry.GuestName))),
+							P(Class("mt-1 text-xs text-muted"), Text(helpers.ScheduleLabel(inquiry.StayType, inquiry.StartTime, inquiry.EndTime))),
+						),
 						Span(Class("text-muted"), Text(helpers.StayTypeLabel(inquiry.StayType)+" · "+strconv.Itoa(inquiry.Guests)+" huéspedes")),
 					)
 				})),

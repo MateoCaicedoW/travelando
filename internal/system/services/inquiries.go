@@ -90,18 +90,30 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 	dateTo := inquiry.DateTo
 	if inquiry.StayType == models.StayDayUse {
 		dateTo = from.AddDate(0, 0, 1).Format("2006-01-02")
+		inquiry.StartTime, inquiry.EndTime = cabin.DayStart, cabin.DayEnd
+	} else {
+		inquiry.StartTime, inquiry.EndTime = cabin.CheckIn, cabin.CheckOut
+	}
+	inquiry.CleaningHours = cabin.CleaningHours
+	startAt, readyAt, err := reservationWindow(cabin, inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)
+	if err != nil {
+		return "", err
 	}
 	var occupied int
 	err = tx.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1 FROM inquiries i
 			WHERE i.cabin_id = ? AND i.status = 'reserved'
-			  AND i.date_from < ? AND i.date_to > ?
+			  AND datetime(?) < datetime(
+				  (CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time,
+				  printf('+%d hours', i.cleaning_hours)
+			  )
+			  AND datetime(?) > datetime(i.date_from || ' ' || i.start_time)
 		) OR EXISTS (
 			SELECT 1 FROM cabin_blocks b
 			WHERE b.cabin_id = ? AND b.date_from < ? AND b.date_to > ?
 		)
-	`, cabin.ID, dateTo, inquiry.DateFrom, cabin.ID, dateTo, inquiry.DateFrom).Scan(&occupied)
+	`, cabin.ID, startAt.Format("2006-01-02 15:04:05"), readyAt.Format("2006-01-02 15:04:05"), cabin.ID, dateTo, inquiry.DateFrom).Scan(&occupied)
 	if err != nil {
 		return "", err
 	}
@@ -114,9 +126,9 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 		return "", err
 	}
 	_, err = tx.Exec(`
-		INSERT INTO inquiries (cabin_id, guest_name, guest_phone, guest_email, stay_type, date_from, date_to, guests, estimated_total, report_token_hash)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, cabin.ID, inquiry.GuestName, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.Guests, quote, hashToken(token))
+		INSERT INTO inquiries (cabin_id, guest_name, guest_phone, guest_email, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, report_token_hash)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.ID, inquiry.GuestName, inquiry.GuestPhone, inquiry.GuestEmail, inquiry.StayType, inquiry.DateFrom, dateTo, inquiry.StartTime, inquiry.EndTime, inquiry.CleaningHours, inquiry.Guests, quote, hashToken(token))
 	if err != nil {
 		return "", err
 	}
@@ -247,7 +259,14 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 			  AND NOT EXISTS (
 				SELECT 1 FROM inquiries other
 				WHERE other.cabin_id = inquiries.cabin_id AND other.id <> inquiries.id AND other.status = 'reserved'
-				  AND other.date_from < inquiries.date_to AND other.date_to > inquiries.date_from
+				  AND datetime(inquiries.date_from || ' ' || inquiries.start_time) < datetime(
+					  (CASE WHEN other.stay_type = 'day_use' THEN other.date_from ELSE other.date_to END) || ' ' || other.end_time,
+					  printf('+%d hours', other.cleaning_hours)
+				  )
+				  AND datetime(
+					  (CASE WHEN inquiries.stay_type = 'day_use' THEN inquiries.date_from ELSE inquiries.date_to END) || ' ' || inquiries.end_time,
+					  printf('+%d hours', inquiries.cleaning_hours)
+				  ) > datetime(other.date_from || ' ' || other.start_time)
 			  )
 			  AND NOT EXISTS (
 				SELECT 1 FROM cabin_blocks b
@@ -277,7 +296,7 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 
 const inquirySelect = `
 	SELECT i.id, i.cabin_id, c.name, COALESCE(o.name, ''), COALESCE(o.whatsapp, ''), i.guest_name, i.guest_phone, i.guest_email,
-	       i.stay_type, i.date_from, i.date_to, i.guests, i.estimated_total, i.status,
+	       i.stay_type, i.date_from, i.date_to, i.start_time, i.end_time, i.cleaning_hours, i.guests, i.estimated_total, i.status,
 	       COALESCE(i.final_total, 0), COALESCE(i.commission_bps, cs.commission_bps), COALESCE(i.commission_due, 0), COALESCE(i.commission_paid_at, ''), i.created_at
 	FROM inquiries i JOIN cabins c ON c.id = i.cabin_id LEFT JOIN owners o ON o.id = c.owner_id JOIN commission_settings cs ON cs.id = 1
 `
@@ -286,7 +305,7 @@ func scanInquiry(row rowScanner) (models.Inquiry, error) {
 	var inquiry models.Inquiry
 	err := row.Scan(
 		&inquiry.ID, &inquiry.CabinID, &inquiry.CabinName, &inquiry.OwnerName, &inquiry.WhatsApp,
-		&inquiry.GuestName, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo,
+		&inquiry.GuestName, &inquiry.GuestPhone, &inquiry.GuestEmail, &inquiry.StayType, &inquiry.DateFrom, &inquiry.DateTo, &inquiry.StartTime, &inquiry.EndTime, &inquiry.CleaningHours,
 		&inquiry.Guests, &inquiry.Estimated, &inquiry.Status, &inquiry.FinalTotal, &inquiry.CommissionBP, &inquiry.Commission, &inquiry.CommissionPaidAt, &inquiry.CreatedAt,
 	)
 	return inquiry, err

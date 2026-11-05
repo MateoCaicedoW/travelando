@@ -22,7 +22,7 @@ Availability search is connected to WhatsApp inquiries and a private follow-up f
 
 ## Operating Context
 
-- Spanish-language catalog with availability search by dates, stay type (pasadía or estadía), and guest count.
+- Spanish-language catalog with availability search by dates, stay type (pasadía or estadía), and guest count. Cabin settings define each stay's entry and exit times; guests do not select hours.
 - Guest requests open a prefilled WhatsApp message to the cabin contact.
 - The private admin manages owners, assigned cabins, inquiry outcomes, full commission payments, and reservation dates.
 - Owners sign in with their cédula and six-digit PIN, can create cabins published immediately, and can toggle assigned cabins active or inactive.
@@ -34,7 +34,7 @@ Availability search is connected to WhatsApp inquiries and a private follow-up f
 - Prices are represented in Colombian pesos (COP); Colombia is implied by the currency, but exact service areas are undecided.
 - Each cabin belongs to an owner; its public contact name and WhatsApp come from that owner. Owners can access only assigned cabins and calendar dates; guest details remain private.
 - Admin can deactivate an owner without deleting their history; their cabins stay stored and hidden until the owner is reactivated.
-- Confirmed reservations, manual admin blocks, and owner-reported external bookings block dates. External bookings do not appear as Travelando reservations and do not incur commission.
+- Confirmed reservations occupy their configured time range plus each cabin's cleaning hours (default 3, configurable down to 0); manual admin blocks and owner-reported external bookings block full dates. External bookings do not appear as Travelando reservations and do not incur commission.
 - Commission is tracked as fully paid or outstanding per reserved inquiry; partial payments are not supported.
 - Specific accessibility requirements and standards have not been established.
 

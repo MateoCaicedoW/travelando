@@ -29,11 +29,13 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 		return CabinSearchResult{}, ErrInvalidInput
 	}
 	end := input.DateTo
+	bookingEndDate := input.DateTo
 	if input.StayType == models.StayDayUse {
 		if !helpers.SameDate(input.DateFrom, input.DateTo) {
 			return CabinSearchResult{}, ErrInvalidInput
 		}
 		end = input.DateFrom.AddDate(0, 0, 1)
+		bookingEndDate = input.DateFrom
 	} else if !input.DateTo.After(input.DateFrom) {
 		return CabinSearchResult{}, ErrInvalidInput
 	}
@@ -54,7 +56,14 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 		  AND NOT EXISTS (
 			SELECT 1 FROM inquiries i
 			WHERE i.cabin_id = c.id AND i.status = 'reserved'
-			  AND i.date_from < ? AND i.date_to > ?
+			  AND datetime(? || ' ' || CASE WHEN ? = 'day_use' THEN c.day_start ELSE c.check_in END) < datetime(
+				  (CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time,
+				  printf('+%d hours', i.cleaning_hours)
+			  )
+			  AND datetime(
+				  ? || ' ' || CASE WHEN ? = 'day_use' THEN c.day_end ELSE c.check_out END,
+				  printf('+%d hours', c.cleaning_hours)
+			  ) > datetime(i.date_from || ' ' || i.start_time)
 		  )
 		  AND NOT EXISTS (
 			SELECT 1 FROM cabin_blocks b
@@ -62,7 +71,10 @@ func (s *availabilityService) Search(input SearchInput) (CabinSearchResult, erro
 		  )
 		ORDER BY c.name, c.id
 	`
-	args := []any{end.Format("2006-01-02"), input.DateFrom.Format("2006-01-02"), end.Format("2006-01-02"), input.DateFrom.Format("2006-01-02")}
+	args := []any{
+		input.DateFrom.Format(time.DateOnly), input.StayType, bookingEndDate.Format(time.DateOnly), input.StayType,
+		end.Format(time.DateOnly), input.DateFrom.Format(time.DateOnly),
+	}
 	if input.Limit > 0 {
 		query += ` LIMIT ? OFFSET ?`
 		args = append(args, input.Limit, input.Offset)

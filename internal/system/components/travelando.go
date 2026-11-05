@@ -128,6 +128,10 @@ func CabinCard(cabin models.Cabin, price int64, stayType models.StayType, href s
 	if stayType == models.StayOvernight {
 		stay = "Estadía"
 	}
+	startTime, endTime := cabin.DayStart, cabin.DayEnd
+	if stayType == models.StayOvernight {
+		startTime, endTime = cabin.CheckIn, cabin.CheckOut
+	}
 	return Article(Class("group overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:shadow-md"),
 		image,
 		Div(Class("p-5 sm:p-6"),
@@ -139,6 +143,7 @@ func CabinCard(cabin models.Cabin, price int64, stayType models.StayType, href s
 				Span(Class("shrink-0 rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Text(stay)),
 			),
 			P(Class("mt-3 line-clamp-2 min-h-11 text-sm leading-6 text-muted"), Text(cabin.Description)),
+			P(Class("mt-3 text-sm font-semibold text-muted"), Text(helpers.ScheduleLabel(stayType, startTime, endTime))),
 			Div(Class("mt-5 flex items-end justify-between gap-3 border-t border-line pt-4"),
 				Div(
 					P(Class("text-xs font-semibold text-muted"), Text(fmt.Sprint(cabin.IncludedGuests)+" incluidas · $"+helpers.FormatCOP(cabin.ExtraGuestPrice)+" extra por reserva")),

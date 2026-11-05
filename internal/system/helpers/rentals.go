@@ -13,6 +13,13 @@ func StayTypeLabel(stayType models.StayType) string {
 	return "Pasadía"
 }
 
+func ScheduleLabel(stayType models.StayType, start, end string) string {
+	if stayType == models.StayOvernight {
+		return "Entrada " + start + " · salida " + end
+	}
+	return start + " a " + end
+}
+
 func DateLabel(stayType models.StayType, dateFrom, dateTo string) string {
 	from := formatDate(dateFrom)
 	if stayType != models.StayOvernight {
