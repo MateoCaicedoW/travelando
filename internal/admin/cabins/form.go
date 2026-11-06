@@ -32,7 +32,7 @@ func cabinFormErrorsFor(r *http.Request, requireOwner bool) validate.Errors {
 	errors := form.Validate(r, validate.Fields(
 		validate.Field("name", validate.Required("Ingresa el nombre de la cabaña."), validate.MaxLength(120, "Usa máximo 120 caracteres.")),
 		validate.Field("description", validate.MaxLength(2000, "Usa máximo 2000 caracteres.")),
-		validate.Field("location", validate.Required("Ingresa la ubicación."), validate.MaxLength(200, "Usa máximo 200 caracteres.")),
+		validate.Field("location", validate.MaxLength(200, "Usa máximo 200 caracteres.")),
 		validate.Field("location_url", optionalURL("Ingresa un enlace HTTP(S) válido.")),
 		validate.Field("included_guests", validate.Required("Indica cuántas personas incluye el precio."), positiveInteger("Ingresa una cantidad válida de personas.")),
 		validate.Field("extra_guest_price", validate.Required("Ingresa el cargo por persona adicional."), integer64Range(0, services.MaxAmountCOP, "Ingresa un cargo válido en COP.")),

@@ -95,7 +95,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 						Textarea(ID("description"), Name("description"), Rows("4"), MaxLength("2000"), Placeholder("Describe lo que hace especial a este lugar"), If(fieldErrors.Has("description"), Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "description-error")}), Class(descriptionClass), Text(fieldValue("description", cabin.Description))),
 						components.FieldError("description", fieldErrors.ErrorStringFor("description")),
 					),
-					components.TextFieldWithError("location", "location", "Ubicación", fieldValue("location", cabin.Location), "Vereda, municipio", "text", true, fieldErrors.ErrorStringFor("location")),
+					components.TextFieldWithError("location", "location", "Ubicación", fieldValue("location", cabin.Location), "Vereda, municipio", "text", false, fieldErrors.ErrorStringFor("location")),
 					components.TextFieldWithError("location_url", "location_url", "Enlace del mapa (opcional)", fieldValue("location_url", cabin.LocationURL), "https://maps.google.com/...", "url", false, fieldErrors.ErrorStringFor("location_url")),
 					If(editing, Label(Class("flex min-h-11 items-center gap-2 text-sm font-semibold text-ink"),
 						Input(Type("checkbox"), Name("active"), Value("on"), If(cabin.Active, Checked()), Class("size-4 accent-brand")),
