@@ -50,10 +50,12 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	isOwner := ownerID > 0
+	isPending := inquiry.Status == models.InquiryPending
 	var update models.ReservationUpdate
 	var pendingUpdate models.InquiryUpdate
 	var fieldErrors validate.Errors
-	if inquiry.Status == models.InquiryPending {
+	if isPending {
 		pendingUpdate, fieldErrors = pendingUpdateFromForm(r)
 	} else {
 		update, fieldErrors = updateFromForm(r)
@@ -63,17 +65,7 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		render(w, r, *inquiry, ownerID, state, http.StatusUnprocessableEntity)
 		return
 	}
-	if inquiry.Status == models.InquiryPending {
-		if ownerID > 0 {
-			err = set.Inquiries.UpdatePendingInquiryForOwner(ownerID, id, pendingUpdate)
-		} else {
-			err = set.Inquiries.UpdatePendingInquiry(id, pendingUpdate)
-		}
-	} else if ownerID > 0 {
-		err = set.Inquiries.UpdateReservationForOwner(ownerID, id, update)
-	} else {
-		err = set.Inquiries.UpdateReservation(id, update)
-	}
+	err = persistUpdate(set.Inquiries, isOwner, isPending, ownerID, id, update, pendingUpdate)
 	if errors.Is(err, services.ErrNotFound) {
 		http.NotFound(w, r)
 		return
@@ -93,18 +85,10 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	message := "Reserva actualizada."
-	if inquiry.Status == models.InquiryPending {
-		message = "Solicitud actualizada. El estimado fue recalculado."
-	} else if ownerID > 0 {
-		message = "Reserva actualizada. El cambio de comisión quedó registrado."
-	}
+	message := updateSuccessMessage(isPending, isOwner)
 	returnTo := ""
 	if r.FormValue("return_to") == "reservations" {
-		returnTo = "/admin/reservations"
-		if ownerID > 0 {
-			returnTo = "/owner/reservations"
-		}
+		returnTo = reservationsReturnPath(isOwner)
 	}
 	if returnTo != "" {
 		if err := helpers.SetFlash(r, helpers.FlashSuccess, message); err != nil {
@@ -128,9 +112,39 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 		return
 	}
-	if ownerID > 0 {
+	if isOwner {
 		helpers.Redirect(w, r, "/owner/")
 		return
 	}
 	helpers.Redirect(w, r, "/admin/")
+}
+
+func persistUpdate(svc services.InquiryService, isOwner, isPending bool, ownerID, id int64, update models.ReservationUpdate, pendingUpdate models.InquiryUpdate) error {
+	if isPending {
+		if isOwner {
+			return svc.UpdatePendingInquiryForOwner(ownerID, id, pendingUpdate)
+		}
+		return svc.UpdatePendingInquiry(id, pendingUpdate)
+	}
+	if isOwner {
+		return svc.UpdateReservationForOwner(ownerID, id, update)
+	}
+	return svc.UpdateReservation(id, update)
+}
+
+func updateSuccessMessage(isPending, isOwner bool) string {
+	if isPending {
+		return "Solicitud actualizada. El estimado fue recalculado."
+	}
+	if isOwner {
+		return "Reserva actualizada. El cambio de comisión quedó registrado."
+	}
+	return "Reserva actualizada."
+}
+
+func reservationsReturnPath(isOwner bool) string {
+	if isOwner {
+		return "/owner/reservations"
+	}
+	return "/admin/reservations"
 }

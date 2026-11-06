@@ -15,7 +15,7 @@ func TestOwnerCalendarRendersEachWeekdayOnceInOrder(t *testing.T) {
 		Weeks: ownerWeeks(2026, time.January), Cabins: []models.Cabin{{ID: 1}},
 	}
 	var html strings.Builder
-	if err := ownerCalendarEl(view).Render(&html); err != nil {
+	if err := CalendarEl(view).Render(&html); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(html.String(), `border-spacing-1 sm:border-spacing-1.5`) {
@@ -41,7 +41,7 @@ func TestOwnerCalendarShowsCompactMobileDaysWithEntryDetails(t *testing.T) {
 		},
 	}
 	var html strings.Builder
-	if err := ownerDayEl(day, view).Render(&html); err != nil {
+	if err := DayEl(day, view).Render(&html); err != nil {
 		t.Fatal(err)
 	}
 

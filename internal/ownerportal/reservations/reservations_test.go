@@ -9,7 +9,7 @@ import (
 
 func TestOwnerReservationsPageShowsOwnedBookingAndEditAction(t *testing.T) {
 	var html strings.Builder
-	page := ownerReservationsPageEl([]models.Inquiry{
+	page := ListPageEl([]models.Inquiry{
 		{ID: 42, Status: models.InquiryReserved, CabinName: "Cabaña del bosque", GuestName: "Huésped", GuestPhone: "573001234567", StayType: models.StayDayUse, DateFrom: "2099-08-10", DateTo: "2099-08-11", Guests: 3, FinalTotal: 125000},
 		{ID: 43, Status: models.InquiryPending, CabinName: "Cabaña del bosque", GuestName: "Solicitud", GuestPhone: "573001111111", StayType: models.StayDayUse, DateFrom: "2099-08-11", DateTo: "2099-08-12", Guests: 2, Estimated: 100000},
 		{ID: 44, Status: models.InquiryCancelled, CancelledFromStatus: models.InquiryReserved, CabinName: "Cabaña del bosque", GuestName: "Cancelada", GuestPhone: "573001222222", StayType: models.StayDayUse, DateFrom: "2099-08-12", DateTo: "2099-08-13", Guests: 2, FinalTotal: 100000},
@@ -29,7 +29,7 @@ func TestOwnerReservationsPageShowsOwnedBookingAndEditAction(t *testing.T) {
 
 func TestCancelledOwnerReservationOnlyOffersView(t *testing.T) {
 	var html strings.Builder
-	if err := ownerReservationRow(models.Inquiry{ID: 44, Status: models.InquiryCancelled}).Render(&html); err != nil {
+	if err := ReservationRowEl(models.Inquiry{ID: 44, Status: models.InquiryCancelled}).Render(&html); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(html.String(), `href="/owner/reservations/44"`) || strings.Contains(html.String(), "/report") || strings.Contains(html.String(), "/confirm") || strings.Contains(html.String(), "/edit") || strings.Contains(html.String(), "/cancel") {
@@ -39,7 +39,7 @@ func TestCancelledOwnerReservationOnlyOffersView(t *testing.T) {
 
 func TestOwnerReservationsPageHasEmptyState(t *testing.T) {
 	var html strings.Builder
-	if err := ownerReservationsPageEl(nil).Render(&html); err != nil {
+	if err := ListPageEl(nil).Render(&html); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(html.String(), "Aún no tienes reservas") || !strings.Contains(html.String(), "solicitudes pendientes") {

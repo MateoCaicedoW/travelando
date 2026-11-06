@@ -23,7 +23,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	page := system.Layout{Title: "Reservas | Travelando", Portal: system.PortalOwner, Yield: ownerReservationsPageEl(inquiries)}.New(r)
+	page := system.Layout{Title: "Reservas | Travelando", Portal: system.PortalOwner, Yield: ListPageEl(inquiries)}.New(r)
 	if err := page.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

@@ -11,7 +11,7 @@ import (
 
 func renderOwnerProfile(w http.ResponseWriter, r *http.Request, owner models.Owner, state *ownerProfileState, status int) {
 	w.WriteHeader(status)
-	page := system.Layout{Title: "Perfil del propietario | Travelando", Portal: system.PortalOwner, Yield: ownerProfileEl(owner, state)}.New(r)
+	page := system.Layout{Title: "Perfil del propietario | Travelando", Portal: system.PortalOwner, Yield: IndexPageEl(owner, state)}.New(r)
 	if err := page.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

@@ -52,7 +52,7 @@ func TestOwnerProfileViewDoesNotRepublishPINValues(t *testing.T) {
 	owner := models.Owner{ID: 7, Name: "María López", Cedula: "12345678", WhatsApp: "573001234567"}
 	values := url.Values{"name": {owner.Name}, "cedula": {owner.Cedula}, "whatsapp": {owner.WhatsApp}, "current_pin": {"123456"}}
 	var output bytes.Buffer
-	if err := ownerProfileEl(owner, &ownerProfileState{Values: values}).Render(&output); err != nil {
+	if err := IndexPageEl(owner, &ownerProfileState{Values: values}).Render(&output); err != nil {
 		t.Fatal(err)
 	}
 	html := output.String()

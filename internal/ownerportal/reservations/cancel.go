@@ -49,7 +49,7 @@ func Cancel(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		response := Group{
-			ownerReservationsContentEl(inquiries),
+			ListContentEl(inquiries),
 			html.Div(html.ID("modal"), hx.SwapOOB("delete")),
 			html.Div(html.ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast("Cancelación registrada. Las fechas ya no están bloqueadas.", helpers.FlashSuccess)),
 		}

@@ -44,7 +44,7 @@ func renderOwnerCabins(w http.ResponseWriter, r *http.Request, page, status int,
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	content := ownerCabinsContentEl(result)
+	content := ListContentEl(result)
 	if closeModal {
 		content = Group{content, Div(ID("modal"), hx.SwapOOB("delete"))}
 	}
@@ -105,7 +105,7 @@ func ownerCabinFormError(w http.ResponseWriter, r *http.Request, page int, cabin
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	content := ownerCabinsContentEl(result)
+	content := ListContentEl(result)
 	if hxhttp.IsRequest(r.Header) {
 		content = Group{content, ownerCabinDialogEl(cabin, state.Errors, state.Values, state.AmenityTypes, editing, page, true)}
 		w.WriteHeader(http.StatusUnprocessableEntity)

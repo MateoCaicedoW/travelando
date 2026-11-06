@@ -19,7 +19,7 @@ func ownerCabinsURL(page int) string { return "/owner/cabins?page=" + strconv.It
 
 func ownerNewCabinURL(page int) string { return "/owner/cabins/new?page=" + strconv.Itoa(page) }
 
-func ownerEditCabinURL(id int64, page int) string {
+func EditCabinURL(id int64, page int) string {
 	return "/owner/cabins/" + strconv.FormatInt(id, 10) + "/edit?page=" + strconv.Itoa(page)
 }
 

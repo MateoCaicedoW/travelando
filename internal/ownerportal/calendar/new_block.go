@@ -16,14 +16,14 @@ func NewBlock(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	modal := ownerExternalBlockDialogEl(view.Cabins, nil, view.Month, view.Year, false)
+	modal := BlockDialogEl(view.Cabins, nil, view.Month, view.Year, false)
 	if hxhttp.IsRequest(r.Header) {
 		if err := modal.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return
 	}
-	page := system.Layout{Title: "Reserva externa | Travelando", Portal: system.PortalOwner, Yield: Group{ownerCalendarContentEl(view), modal}}.New(r)
+	page := system.Layout{Title: "Reserva externa | Travelando", Portal: system.PortalOwner, Yield: Group{IndexContentEl(view), modal}}.New(r)
 	if err := page.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}

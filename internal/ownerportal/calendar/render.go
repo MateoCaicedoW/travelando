@@ -17,7 +17,7 @@ func renderOwnerCalendar(w http.ResponseWriter, r *http.Request, status int, fla
 	if err != nil {
 		return err
 	}
-	content := ownerCalendarContentEl(view)
+	content := IndexContentEl(view)
 	if closeModal {
 		content = Group{content, Div(ID("modal"), hx.SwapOOB("delete"))}
 	}
@@ -36,8 +36,8 @@ func renderOwnerCalendarWithBlockModal(w http.ResponseWriter, r *http.Request, s
 	if err != nil {
 		return err
 	}
-	content := ownerCalendarContentEl(view)
-	modal := ownerExternalBlockDialogEl(view.Cabins, state, view.Month, view.Year, hxhttp.IsRequest(r.Header))
+	content := IndexContentEl(view)
+	modal := BlockDialogEl(view.Cabins, state, view.Month, view.Year, hxhttp.IsRequest(r.Header))
 	w.WriteHeader(status)
 	if hxhttp.IsRequest(r.Header) {
 		return Group{content, modal}.Render(w)
