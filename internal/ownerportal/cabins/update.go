@@ -14,8 +14,8 @@ import (
 )
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 128<<20)
-	if err := r.ParseMultipartForm(128 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, admincabins.MaxRequestBody)
+	if err := r.ParseMultipartForm(admincabins.MaxFormMemory); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
@@ -38,23 +38,40 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cabin, fieldErrors := admincabins.OwnerCabinFromForm(r, id, ownerID)
+
+	var existingPhotos []string
 	if existing, err := set.Cabins.Cabin(cabin.ID); err == nil && existing != nil {
 		cabin.Photos = existing.Photos
+		existingPhotos = make([]string, 0, len(existing.Photos))
+		for _, p := range existing.Photos {
+			existingPhotos = append(existingPhotos, p.URL) // <- ajusta el nombre del campo
+		}
 	}
+
 	cabinAmenities, amenityErrors := admincabins.CabinAmenitiesFromForm(r, amenityTypes)
 	cabin.Amenities = cabinAmenities
 	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
 	cabin.Active = r.FormValue("active") == "on"
 	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
-	if len(r.MultipartForm.File["photos"]) > 5 {
+
+	files := r.MultipartForm.File["photos"]
+	if len(files) > admincabins.MaxPhotos {
 		addOwnerCabinFormError(state, "photos", "Solo se pueden subir 5 fotos a la vez.")
 		ownerCabinFormError(w, r, page, cabin, state, true)
 		return
+	}
+	for _, fh := range files {
+		if fh.Size > admincabins.MaxPhotoSize {
+			addOwnerCabinFormError(state, "photos", "Cada foto debe pesar máximo 8MB.")
+			ownerCabinFormError(w, r, page, cabin, state, true)
+			return
+		}
 	}
 	if fieldErrors.HasAny() {
 		ownerCabinFormError(w, r, page, cabin, state, true)
 		return
 	}
+
 	if err := set.Cabins.UpdateCabinForOwner(ownerID, &cabin); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			http.NotFound(w, r)
@@ -69,11 +86,26 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if len(r.Form["removed_photos"]) > 0 {
-		go admincabins.DeleteCabinPhotos(w, r, set.Cabins, cabin.ID, r.Form["removed_photos"])
+
+	// Síncrono: los temporales del multipart siguen vivos hasta que el handler retorne.
+	ctx := r.Context()
+	photoFailed := false
+
+	if urls := admincabins.OwnedPhotos(existingPhotos, r.Form["removed_photos"]); len(urls) > 0 {
+		if err := admincabins.DeleteCabinPhotos(ctx, set.Cabins, cabin.ID, urls); err != nil {
+			slog.Error("owner deleting cabin photos", "owner_id", ownerID, "cabin", cabin.ID, "error", err)
+			photoFailed = true
+		}
 	}
-	if r.MultipartForm != nil && len(r.MultipartForm.File["photos"]) > 0 {
-		go admincabins.SaveCabinPhotos(w, r, set.Cabins, cabin.ID, r.MultipartForm.File["photos"])
+	if len(files) > 0 {
+		if err := admincabins.SaveCabinPhotos(ctx, set.Cabins, cabin.ID, files); err != nil {
+			slog.Error("owner saving cabin photos", "owner_id", ownerID, "cabin", cabin.ID, "error", err)
+			photoFailed = true
+		}
+	}
+	if photoFailed {
+		ownerCabinSuccess(w, r, page, "Cabaña actualizada, pero algunas fotos no se pudieron procesar. Intenta de nuevo.")
+		return
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña actualizada.")
 }

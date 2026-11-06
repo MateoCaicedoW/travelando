@@ -15,9 +15,16 @@ import (
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
+const (
+	MaxPhotos      = 5
+	MaxPhotoSize   = 8 << 20                            // por foto
+	MaxRequestBody = (MaxPhotos * MaxPhotoSize) + 1<<20 // ~41MB total
+	MaxFormMemory  = 2 << 20                            // lo demás se va a disco
+)
+
 func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.CabinService, *models.Cabin) error) {
-	r.Body = http.MaxBytesReader(w, r.Body, 128<<20)
-	if err := r.ParseMultipartForm(128 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestBody)
+	if err := r.ParseMultipartForm(MaxFormMemory); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
@@ -26,21 +33,25 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 		http.NotFound(w, r)
 		return
 	}
+
+	set := services.ServiceSetFromCtx(r.Context())
+	svc := set.Cabins
+	if svc == nil || set.Amenities == nil {
+		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
+		return
+	}
+
 	cabin, fieldErrors := cabinFromForm(r, id)
-	svc := services.ServiceSetFromCtx(r.Context()).Cabins
-	if cabin.ID > 0 && svc != nil {
+
+	var existingPhotos []string
+	if cabin.ID > 0 {
 		if existing, err := svc.Cabin(cabin.ID); err == nil && existing != nil {
 			cabin.Photos = existing.Photos
+			existingPhotos = make([]string, 0, len(existing.Photos))
+			for _, p := range existing.Photos {
+				existingPhotos = append(existingPhotos, p.URL)
+			}
 		}
-	}
-	if svc == nil {
-		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
-		return
-	}
-	set := services.ServiceSetFromCtx(r.Context())
-	if set.Amenities == nil {
-		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
-		return
 	}
 	amenityTypes, err := set.Amenities.TypesForOwner(cabin.OwnerID)
 	if err != nil {
@@ -52,15 +63,25 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 	fieldErrors = MergeCabinFormErrors(fieldErrors, amenityErrors)
 	cabin.Active = r.FormValue("active") == "on" || cabin.ID == 0
 	state := &cabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
-	if len(r.MultipartForm.File["photos"]) > 5 {
+
+	files := r.MultipartForm.File["photos"]
+	if len(files) > MaxPhotos {
 		_ = helpers.SetFlash(r, helpers.FlashError, "Solo se pueden subir 5 fotos a la vez.")
 		renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
 		return
+	}
+	for _, fh := range files {
+		if fh.Size > MaxPhotoSize {
+			_ = helpers.SetFlash(r, helpers.FlashError, "Cada foto debe pesar máximo 8MB.")
+			renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
+			return
+		}
 	}
 	if fieldErrors.HasAny() {
 		renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
 		return
 	}
+
 	if err := operation(svc, &cabin); err != nil {
 		if errors.Is(err, services.ErrInvalidInput) {
 			if err := helpers.SetFlash(r, helpers.FlashError, "Revisa los datos de la cabaña."); err != nil {
@@ -78,11 +99,26 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 		renderCabinForm(w, r, cabin, state, http.StatusInternalServerError)
 		return
 	}
-	if len(r.Form["removed_photos"]) > 0 {
-		go DeleteCabinPhotos(w, r, svc, cabin.ID, r.Form["removed_photos"])
+
+	// Síncrono: los archivos temporales del multipart siguen vivos mientras
+	// el handler no haya retornado.
+	ctx := r.Context()
+	photoFailed := false
+
+	if urls := OwnedPhotos(existingPhotos, r.Form["removed_photos"]); len(urls) > 0 {
+		if err := DeleteCabinPhotos(ctx, svc, cabin.ID, urls); err != nil {
+			slog.Error("deleting cabin photos", "cabin", cabin.ID, "error", err)
+			photoFailed = true
+		}
 	}
-	if r.MultipartForm != nil && len(r.MultipartForm.File["photos"]) > 0 {
-		go SaveCabinPhotos(w, r, svc, cabin.ID, r.MultipartForm.File["photos"])
+	if len(files) > 0 {
+		if err := SaveCabinPhotos(ctx, svc, cabin.ID, files); err != nil {
+			slog.Error("saving cabin photos", "cabin", cabin.ID, "error", err)
+			photoFailed = true
+		}
+	}
+	if photoFailed {
+		_ = helpers.SetFlash(r, helpers.FlashError, "La cabaña se guardó, pero algunas fotos no se pudieron procesar.")
 	}
 
 	helpers.Redirect(w, r, "/admin/cabins")
@@ -104,35 +140,30 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+
+	isEdit := cabin.ID > 0
 	form := newEl(cabin, owners, state.AmenityTypes, state)
-	if cabin.ID > 0 {
+	if isEdit {
 		form = editModalEl(cabin, blocks, bookings, owners, state.AmenityTypes, state)
 	}
 	w.WriteHeader(status)
-	if cabin.ID > 0 {
-		if hxhttp.IsRequest(r.Header) {
-			if err := form.Render(w); err != nil {
-				server.Error(w, err, http.StatusInternalServerError)
-			}
-			return
-		}
-		dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: form})
-		if err := dialog.Render(w); err != nil {
-			server.Error(w, err, http.StatusInternalServerError)
-		}
-		return
-	}
+
 	if hxhttp.IsRequest(r.Header) {
 		if err := form.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
 		return
 	}
-	title := "Nueva cabaña | Travelando"
-	if cabin.ID > 0 {
-		title = "Editar cabaña | Travelando"
+
+	if isEdit {
+		dialog := components.CustomDialog(components.DialogProps{Label: "Editar cabaña", Yield: form})
+		if err := dialog.Render(w); err != nil {
+			server.Error(w, err, http.StatusInternalServerError)
+		}
+		return
 	}
-	page := system.Layout{Title: title, Portal: system.PortalAdmin, Yield: form}.New(r)
+
+	page := system.Layout{Title: "Nueva cabaña | Travelando", Portal: system.PortalAdmin, Yield: form}.New(r)
 	if err := page.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
 	}
