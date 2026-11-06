@@ -21,7 +21,7 @@ RUN go build -tags osusergo,netgo -o bin/migrate ./cmd/migrate
 RUN go build -tags osusergo,netgo -o bin/app ./cmd/app
 
 FROM alpine
-RUN apk add --no-cache tzdata ca-certificates
+RUN apk add --no-cache tzdata ca-certificates sqlite
 ENV GO_ENV=production
 
 WORKDIR /bin/
