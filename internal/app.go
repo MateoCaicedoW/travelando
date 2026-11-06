@@ -14,7 +14,12 @@ import (
 	adminowners "travelando/internal/admin/owners"
 	adminreservations "travelando/internal/admin/reservations"
 	"travelando/internal/home"
-	"travelando/internal/ownerportal"
+	owneramenities "travelando/internal/ownerportal/amenities"
+	ownerauth "travelando/internal/ownerportal/auth"
+	ownercabins "travelando/internal/ownerportal/cabins"
+	ownercalendar "travelando/internal/ownerportal/calendar"
+	ownerprofile "travelando/internal/ownerportal/profile"
+	ownerreservations "travelando/internal/ownerportal/reservations"
 	"travelando/internal/requests"
 	"travelando/internal/reservations"
 	"travelando/internal/system/assets"
@@ -75,8 +80,8 @@ func New() (http.Handler, string) {
 	r.HandleFunc("POST /report/{token}", requests.ReportResult)
 	r.HandleFunc("GET /admin/login", adminauth.LoginPage)
 	r.HandleFunc("POST /admin/login", adminauth.Login)
-	r.HandleFunc("GET /owner/login", ownerportal.LoginPage)
-	r.HandleFunc("POST /owner/login", ownerportal.Login)
+	r.HandleFunc("GET /owner/login", ownerauth.LoginPage)
+	r.HandleFunc("POST /owner/login", ownerauth.Login)
 
 	r.Group("/admin", func(rg server.Router) {
 		rg.Use(adminauth.RequireAuth)
@@ -114,31 +119,31 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("POST /owners/{id}", adminowners.Update)
 	})
 	r.Group("/owner", func(rg server.Router) {
-		rg.Use(ownerportal.RequireAuth)
-		rg.HandleFunc("GET /{$}", ownerportal.Index)
-		rg.HandleFunc("GET /profile", ownerportal.Profile)
-		rg.HandleFunc("POST /profile", ownerportal.UpdateProfile)
-		rg.HandleFunc("GET /reservations", ownerportal.Reservations)
-		rg.HandleFunc("GET /reservations/{id}", ownerportal.ReservationDetails)
-		rg.HandleFunc("GET /reservations/{id}/confirm", ownerportal.ShowReservationConfirmation)
-		rg.HandleFunc("POST /reservations/{id}/confirm", ownerportal.ConfirmReservation)
-		rg.HandleFunc("POST /reservations/{id}/cancel", ownerportal.CancelReservation)
-		rg.HandleFunc("GET /cabins", ownerportal.Cabins)
-		rg.HandleFunc("GET /cabins/new", ownerportal.NewCabin)
-		rg.HandleFunc("POST /cabins", ownerportal.CreateCabin)
-		rg.HandleFunc("GET /cabins/{id}/edit", ownerportal.EditCabin)
-		rg.HandleFunc("POST /cabins/{id}", ownerportal.UpdateCabin)
-		rg.HandleFunc("POST /cabin-amenities/create", ownerportal.CreateCabinAmenityType)
-		rg.HandleFunc("GET /amenities", ownerportal.AmenityTypes)
-		rg.HandleFunc("POST /amenities/create", ownerportal.CreateAmenityType)
-		rg.HandleFunc("POST /amenities/{id}", ownerportal.UpdateAmenityType)
-		rg.HandleFunc("POST /amenities/{id}/delete", ownerportal.DeleteAmenityType)
-		rg.HandleFunc("GET /blocks/new", ownerportal.NewBlock)
-		rg.HandleFunc("POST /blocks", ownerportal.AddBlock)
-		rg.HandleFunc("POST /blocks/{blockID}/delete", ownerportal.DeleteBlock)
-		rg.HandleFunc("GET /reservations/{id}/edit", ownerportal.EditReservation)
-		rg.HandleFunc("POST /reservations/{id}", ownerportal.UpdateReservation)
-		rg.HandleFunc("POST /logout", ownerportal.Logout)
+		rg.Use(ownerauth.RequireAuth)
+		rg.HandleFunc("GET /{$}", ownercalendar.Index)
+		rg.HandleFunc("GET /profile", ownerprofile.Index)
+		rg.HandleFunc("POST /profile", ownerprofile.Update)
+		rg.HandleFunc("GET /reservations", ownerreservations.Index)
+		rg.HandleFunc("GET /reservations/{id}", ownerreservations.Show)
+		rg.HandleFunc("GET /reservations/{id}/confirm", ownerreservations.ShowConfirm)
+		rg.HandleFunc("POST /reservations/{id}/confirm", ownerreservations.Confirm)
+		rg.HandleFunc("POST /reservations/{id}/cancel", ownerreservations.Cancel)
+		rg.HandleFunc("GET /cabins", ownercabins.Index)
+		rg.HandleFunc("GET /cabins/new", ownercabins.New)
+		rg.HandleFunc("POST /cabins", ownercabins.Create)
+		rg.HandleFunc("GET /cabins/{id}/edit", ownercabins.Edit)
+		rg.HandleFunc("POST /cabins/{id}", ownercabins.Update)
+		rg.HandleFunc("POST /cabin-amenities/create", ownercabins.CreateCabinAmenityType)
+		rg.HandleFunc("GET /amenities", owneramenities.Index)
+		rg.HandleFunc("POST /amenities/create", owneramenities.Create)
+		rg.HandleFunc("POST /amenities/{id}", owneramenities.Update)
+		rg.HandleFunc("POST /amenities/{id}/delete", owneramenities.Delete)
+		rg.HandleFunc("GET /blocks/new", ownercalendar.NewBlock)
+		rg.HandleFunc("POST /blocks", ownercalendar.AddBlock)
+		rg.HandleFunc("POST /blocks/{blockID}/delete", ownercalendar.DeleteBlock)
+		rg.HandleFunc("GET /reservations/{id}/edit", ownerreservations.Edit)
+		rg.HandleFunc("POST /reservations/{id}", ownerreservations.Update)
+		rg.HandleFunc("POST /logout", ownerauth.Logout)
 	})
 	r.Handle("GET /assets/{path...}", assets.NewAssetHandler(assets.Files, "/assets/"))
 
