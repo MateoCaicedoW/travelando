@@ -3,25 +3,21 @@ package cabins
 import (
 	"errors"
 	"log/slog"
-	"mime/multipart"
 	"net/http"
-	"strings"
-	"sync"
 
 	"travelando/internal/system"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
-	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/server"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.CabinService, *models.Cabin) error) {
-	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 128<<20)
+	if err := r.ParseMultipartForm(128 << 20); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
@@ -32,6 +28,11 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 	}
 	cabin, fieldErrors := cabinFromForm(r, id)
 	svc := services.ServiceSetFromCtx(r.Context()).Cabins
+	if cabin.ID > 0 && svc != nil {
+		if existing, err := svc.Cabin(cabin.ID); err == nil && existing != nil {
+			cabin.Photos = existing.Photos
+		}
+	}
 	if svc == nil {
 		http.Error(w, "Servicio no disponible", http.StatusInternalServerError)
 		return
@@ -51,6 +52,11 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 	fieldErrors = MergeCabinFormErrors(fieldErrors, amenityErrors)
 	cabin.Active = r.FormValue("active") == "on" || cabin.ID == 0
 	state := &cabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	if len(r.MultipartForm.File["photos"]) > 5 {
+		_ = helpers.SetFlash(r, helpers.FlashError, "Solo se pueden subir 5 fotos a la vez.")
+		renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
+		return
+	}
 	if fieldErrors.HasAny() {
 		renderCabinForm(w, r, cabin, state, http.StatusUnprocessableEntity)
 		return
@@ -72,38 +78,13 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 		renderCabinForm(w, r, cabin, state, http.StatusInternalServerError)
 		return
 	}
-	// Save uploaded photos, if any.
-	if r.MultipartForm != nil {
-		photoSvc := services.ServiceSetFromCtx(r.Context()).Storage
-		var wg sync.WaitGroup
-		for _, fh := range r.MultipartForm.File["photos"] {
-			wg.Add(1)
-			go func(fh *multipart.FileHeader) {
-				defer wg.Done()
-				f, err := fh.Open()
-				if err != nil {
-					return
-				}
-				defer f.Close()
-				rel, err := photoSvc.SavePhoto(f, fh)
-				if err != nil {
-					return
-				}
-				_ = svc.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
-			}(fh)
-		}
-		wg.Wait()
+	if len(r.Form["removed_photos"]) > 0 {
+		go DeleteCabinPhotos(w, r, svc, cabin.ID, r.Form["removed_photos"])
 	}
-	var wg sync.WaitGroup
-	for _, photoURL := range r.Form["removed_photos"] {
-		wg.Add(1)
-		go func(photoURL string) {
-			defer wg.Done()
-			_ = svc.DeleteCabinPhoto(cabin.ID, photoURL)
-			_ = services.ServiceSetFromCtx(r.Context()).Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
-		}(photoURL)
+	if r.MultipartForm != nil && len(r.MultipartForm.File["photos"]) > 0 {
+		go SaveCabinPhotos(w, r, svc, cabin.ID, r.MultipartForm.File["photos"])
 	}
-	wg.Wait()
+
 	helpers.Redirect(w, r, "/admin/cabins")
 }
 

@@ -3,26 +3,23 @@ package cabins
 import (
 	"errors"
 	"log/slog"
-	"mime/multipart"
 	"net/http"
-	"strings"
-	"sync"
 
 	"travelando/internal/ownerportal/auth"
 
 	admincabins "travelando/internal/admin/cabins"
 	"travelando/internal/system/services"
-	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/server"
 )
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 128<<20)
+	if err := r.ParseMultipartForm(128 << 20); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
+
 	id, err := ownerCabinIDFromPath(r)
 	if err != nil {
 		http.NotFound(w, r)
@@ -41,11 +38,19 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cabin, fieldErrors := admincabins.OwnerCabinFromForm(r, id, ownerID)
+	if existing, err := set.Cabins.Cabin(cabin.ID); err == nil && existing != nil {
+		cabin.Photos = existing.Photos
+	}
 	cabinAmenities, amenityErrors := admincabins.CabinAmenitiesFromForm(r, amenityTypes)
 	cabin.Amenities = cabinAmenities
 	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
 	cabin.Active = r.FormValue("active") == "on"
 	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	if len(r.MultipartForm.File["photos"]) > 5 {
+		addOwnerCabinFormError(state, "photos", "Solo se pueden subir 5 fotos a la vez.")
+		ownerCabinFormError(w, r, page, cabin, state, true)
+		return
+	}
 	if fieldErrors.HasAny() {
 		ownerCabinFormError(w, r, page, cabin, state, true)
 		return
@@ -64,36 +69,11 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	var wg sync.WaitGroup
-	for _, photoURL := range r.Form["removed_photos"] {
-		wg.Add(1)
-		go func(photoURL string) {
-			defer wg.Done()
-			_ = set.Cabins.DeleteCabinPhoto(cabin.ID, photoURL)
-			_ = set.Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
-		}(photoURL)
+	if len(r.Form["removed_photos"]) > 0 {
+		go admincabins.DeleteCabinPhotos(w, r, set.Cabins, cabin.ID, r.Form["removed_photos"])
 	}
-	wg.Wait()
-	if r.MultipartForm != nil {
-		photoSvc := set.Storage
-		var wg sync.WaitGroup
-		for _, fh := range r.MultipartForm.File["photos"] {
-			wg.Add(1)
-			go func(fh *multipart.FileHeader) {
-				defer wg.Done()
-				f, err := fh.Open()
-				if err != nil {
-					return
-				}
-				defer f.Close()
-				rel, err := photoSvc.SavePhoto(f, fh)
-				if err != nil {
-					return
-				}
-				_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
-			}(fh)
-		}
-		wg.Wait()
+	if r.MultipartForm != nil && len(r.MultipartForm.File["photos"]) > 0 {
+		go admincabins.SaveCabinPhotos(w, r, set.Cabins, cabin.ID, r.MultipartForm.File["photos"])
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña actualizada.")
 }

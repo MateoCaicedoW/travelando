@@ -34,6 +34,7 @@ func CabinPhotoManager(cabinID int64, photos []models.CabinPhoto, uploadURL, del
 			Input(Type("file"), Name("photos"), Attr("multiple", "multiple"), Attr("accept", "image/*"), Class("hidden"), Attr("data-photo-dropzone-target", "input")),
 			P(Class("text-sm font-medium text-ink"), Text("Arrastra fotos aquí o haz clic para seleccionar")),
 			P(Class("mt-1 text-xs text-ink/60"), Text("PNG, JPG o WEBP. Se pueden seleccionar varias.")),
+			P(Class("photo-dropzone-error mt-1 text-xs text-red-600"), Text("")),
 			Div(Attr("data-photo-dropzone-target", "preview"), Class("mt-3 grid w-full grid-cols-3 gap-2")),
 		),
 	)

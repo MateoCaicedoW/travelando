@@ -3,25 +3,23 @@ package cabins
 import (
 	"errors"
 	"log/slog"
-	"mime/multipart"
 	"net/http"
-	"sync"
 
 	"travelando/internal/ownerportal/auth"
 
 	admincabins "travelando/internal/admin/cabins"
 	"travelando/internal/system/services"
-	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/server"
 )
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 128<<20)
+	if err := r.ParseMultipartForm(128 << 20); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
+
 	ownerID := auth.OwnerIDFromSession(r)
 	page := ownerCabinPageParam(r)
 	set := services.ServiceSetFromCtx(r.Context())
@@ -39,6 +37,11 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	cabin.Amenities = cabinAmenities
 	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
 	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	if len(r.MultipartForm.File["photos"]) > 5 {
+		addOwnerCabinFormError(state, "photos", "Solo se pueden subir 5 fotos a la vez.")
+		ownerCabinFormError(w, r, page, cabin, state, false)
+		return
+	}
 	if fieldErrors.HasAny() {
 		ownerCabinFormError(w, r, page, cabin, state, false)
 		return
@@ -54,26 +57,8 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if r.MultipartForm != nil {
-		photoSvc := set.Storage
-		var wg sync.WaitGroup
-		for _, fh := range r.MultipartForm.File["photos"] {
-			wg.Add(1)
-			go func(fh *multipart.FileHeader) {
-				defer wg.Done()
-				f, err := fh.Open()
-				if err != nil {
-					return
-				}
-				defer f.Close()
-				rel, err := photoSvc.SavePhoto(f, fh)
-				if err != nil {
-					return
-				}
-				_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
-			}(fh)
-		}
-		wg.Wait()
+	if r.MultipartForm != nil && len(r.MultipartForm.File["photos"]) > 0 {
+		go admincabins.SaveCabinPhotos(w, r, set.Cabins, cabin.ID, r.MultipartForm.File["photos"])
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña agregada y publicada.")
 }

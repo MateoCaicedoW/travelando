@@ -14,7 +14,15 @@ export default class extends Controller {
   }
 
   addFiles(fileList) {
-    this.files = this.files.concat(Array.from(fileList || []));
+    const incoming = Array.from(fileList || []);
+    if (this.files.length + incoming.length > 5) {
+      const msg = this.element.querySelector('.photo-dropzone-error');
+      if (msg) msg.textContent = 'Solo se pueden subir 5 fotos a la vez.';
+      return;
+    }
+    const msg = this.element.querySelector('.photo-dropzone-error');
+    if (msg) msg.textContent = '';
+    this.files = this.files.concat(incoming);
     this.sync();
   }
 
