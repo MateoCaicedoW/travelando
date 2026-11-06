@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 
+	"travelando/internal/system/storage"
+
 	"go.leapkit.dev/core/db"
 )
 
@@ -14,6 +16,7 @@ const ServicesContextKey = "app_services"
 
 type ServiceSet struct {
 	Cabins       CabinService
+	Storage      storage.Service
 	Availability AvailabilityService
 	Inquiries    InquiryService
 	Blocks       BlockService
@@ -49,7 +52,7 @@ func NewAmenityService(conn db.ConnFn) AmenityService { return &amenityService{s
 
 func NewServiceSet(conn db.ConnFn) ServiceSet {
 	return ServiceSet{
-		Cabins: NewCabinService(conn), Availability: NewAvailabilityService(conn),
+		Cabins: NewCabinService(conn), Storage: storage.NewService(), Availability: NewAvailabilityService(conn),
 		Inquiries: NewInquiryService(conn), Blocks: NewBlockService(conn),
 		Calendar: NewCalendarService(conn), Commissions: NewCommissionService(conn), Deposits: NewDepositService(conn), Owners: NewOwnerService(conn),
 		Amenities: NewAmenityService(conn),

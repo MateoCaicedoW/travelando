@@ -4,19 +4,22 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"travelando/internal/system"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
+	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/server"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.CabinService, *models.Cabin) error) {
-	if err := helpers.ParseForm(w, r); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
@@ -66,6 +69,26 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 		}
 		renderCabinForm(w, r, cabin, state, http.StatusInternalServerError)
 		return
+	}
+	// Save uploaded photos, if any.
+	if r.MultipartForm != nil {
+		photoSvc := services.ServiceSetFromCtx(r.Context()).Storage
+		for _, fh := range r.MultipartForm.File["photos"] {
+			f, err := fh.Open()
+			if err != nil {
+				continue
+			}
+			rel, err := photoSvc.SavePhoto(f, fh)
+			f.Close()
+			if err != nil {
+				continue
+			}
+			_ = svc.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+		}
+	}
+	for _, photoURL := range r.Form["removed_photos"] {
+		_ = svc.DeleteCabinPhoto(cabin.ID, photoURL)
+		_ = services.ServiceSetFromCtx(r.Context()).Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
 	}
 	helpers.Redirect(w, r, "/admin/cabins")
 }

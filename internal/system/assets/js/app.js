@@ -8,6 +8,7 @@ import PortalNavigationController from './controllers/portal_navigation_controll
 import ConfirmationController from './controllers/confirmation_controller';
 import ModalController from './controllers/modal_controller';
 import PhotoCarouselController from './controllers/photo_carousel_controller';
+import PhotoDropzoneController from './controllers/photo_dropzone_controller';
 import PriceEstimateController from './controllers/price_estimate_controller';
 import SearchableSelectController from './controllers/searchable_select_controller';
 
@@ -17,6 +18,7 @@ application.register('confirmation', ConfirmationController);
 application.register('flash', FlashController);
 application.register('modal', ModalController);
 application.register('photo-carousel', PhotoCarouselController);
+application.register('photo-dropzone', PhotoDropzoneController);
 application.register('price-estimate', PriceEstimateController);
 application.register('searchable-select', SearchableSelectController);
 window.Stimulus = application;

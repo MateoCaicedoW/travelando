@@ -17,6 +17,8 @@ type CabinService interface {
 	Cabin(id int64) (*models.Cabin, error)
 	CreateCabin(*models.Cabin) error
 	UpdateCabin(*models.Cabin) error
+	AddCabinPhoto(cabinID int64, photoURL string) error
+	DeleteCabinPhoto(cabinID int64, photoURL string) error
 	CreateCabinForOwner(ownerID int64, cabin *models.Cabin) error
 	UpdateCabinForOwner(ownerID int64, cabin *models.Cabin) error
 }
@@ -235,6 +237,26 @@ func (s *cabinService) CreateCabinForOwner(ownerID int64, cabin *models.Cabin) e
 	}
 	cabin.OwnerID = ownerID
 	return s.CreateCabin(cabin)
+}
+
+func (s *cabinService) AddCabinPhoto(cabinID int64, photoURL string) error {
+	db, err := s.conn()
+	if err != nil {
+		return err
+	}
+	var pos int
+	_ = db.QueryRow(`SELECT COALESCE(MAX(position), -1) + 1 FROM cabin_photos WHERE cabin_id = ?`, cabinID).Scan(&pos)
+	_, err = db.Exec(`INSERT INTO cabin_photos (cabin_id, photo_url, position) VALUES (?, ?, ?)`, cabinID, photoURL, pos)
+	return err
+}
+
+func (s *cabinService) DeleteCabinPhoto(cabinID int64, photoURL string) error {
+	db, err := s.conn()
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`DELETE FROM cabin_photos WHERE cabin_id = ? AND photo_url = ?`, cabinID, photoURL)
+	return err
 }
 
 func (s *cabinService) UpdateCabin(cabin *models.Cabin) error {

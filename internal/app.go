@@ -24,6 +24,7 @@ import (
 	"travelando/internal/reservations"
 	"travelando/internal/system/assets"
 	"travelando/internal/system/services"
+	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/db"
 	"go.leapkit.dev/core/server"
@@ -107,6 +108,7 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("POST /cabin-amenities/create", admincabins.CreateCabinAmenityTypeHandler)
 		rg.HandleFunc("POST /cabins/{id}/blocks", admincabins.AddBlock)
 		rg.HandleFunc("POST /cabins/{id}/blocks/{blockID}/delete", admincabins.DeleteBlock)
+		rg.HandleFunc("POST /cabins/{id}/photos/delete", admincabins.DeletePhoto)
 		rg.HandleFunc("GET /amenities", adminamenities.Index)
 		rg.HandleFunc("POST /amenities/create", adminamenities.Create)
 		rg.HandleFunc("POST /amenities/{id}", adminamenities.Update)
@@ -146,6 +148,10 @@ func New() (http.Handler, string) {
 		rg.HandleFunc("POST /logout", ownerauth.Logout)
 	})
 	r.Handle("GET /assets/{path...}", assets.NewAssetHandler(assets.Files, "/assets/"))
+
+	// Serve uploaded pictures from disk.
+	_ = storage.NewService()
+	r.Handle("GET /uploads/{path...}", http.StripPrefix("/uploads/", http.FileServer(http.Dir(storage.UploadDir))))
 
 	return r.Handler(), r.Addr()
 }

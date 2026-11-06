@@ -7,14 +7,15 @@ import (
 	"travelando/internal/ownerportal/auth"
 
 	admincabins "travelando/internal/admin/cabins"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
+	"travelando/internal/system/storage"
 
 	"go.leapkit.dev/core/server"
 )
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	if err := helpers.ParseForm(w, r); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
@@ -49,6 +50,21 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		slog.Error("owner creating cabin", "owner_id", ownerID, "error", err)
 		server.Error(w, err, http.StatusInternalServerError)
 		return
+	}
+	if r.MultipartForm != nil {
+		photoSvc := set.Storage
+		for _, fh := range r.MultipartForm.File["photos"] {
+			f, err := fh.Open()
+			if err != nil {
+				continue
+			}
+			rel, err := photoSvc.SavePhoto(f, fh)
+			f.Close()
+			if err != nil {
+				continue
+			}
+			_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+		}
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña agregada y publicada.")
 }

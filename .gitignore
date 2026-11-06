@@ -2,3 +2,4 @@ bin/*
 database.db*
 node_modules/
 internal/system/assets/dist/
+uploads
