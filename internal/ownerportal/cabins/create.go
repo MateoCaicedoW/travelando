@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"travelando/internal/ownerportal/auth"
 
@@ -36,7 +37,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	cabinAmenities, amenityErrors := admincabins.CabinAmenitiesFromForm(r, amenityTypes)
 	cabin.Amenities = cabinAmenities
 	fieldErrors = admincabins.MergeCabinFormErrors(fieldErrors, amenityErrors)
-	state := &ownerCabinFormState{Errors: fieldErrors, Values: r.Form, AmenityTypes: amenityTypes}
+	state := &ownerCabinFormState{Errors: fieldErrors, Values: url.Values(r.MultipartForm.Value), AmenityTypes: amenityTypes}
 
 	files := r.MultipartForm.File["photos"]
 	if len(files) > admincabins.MaxPhotos {
