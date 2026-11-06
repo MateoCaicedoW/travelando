@@ -13,6 +13,7 @@ import (
 
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Create(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +37,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 				return
 			}
-			if helpers.IsHTMX(r) {
+			if hxhttp.IsRequest(r.Header) {
 				helpers.Redirect(w, r, "/cabins/"+r.PathValue("id"))
 				return
 			}
@@ -89,7 +90,7 @@ func renderInquiryForm(w http.ResponseWriter, r *http.Request, fieldErrors valid
 	data.RequestValues = r.Form
 	data.RequestErrors = fieldErrors
 	w.WriteHeader(status)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := home.CabinEl(*cabin, data).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

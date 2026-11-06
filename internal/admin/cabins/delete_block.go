@@ -6,6 +6,8 @@ import (
 
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
+
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func DeleteBlock(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +30,7 @@ func DeleteBlock(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		refreshCabinEdit(w, r, id)
 		return
 	}

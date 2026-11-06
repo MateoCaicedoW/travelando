@@ -84,6 +84,104 @@ func TestCabinPhotoMigrationPreservesCoverAndLoadsPhotosInOrder(t *testing.T) {
 	}
 }
 
+func TestFeaturedCabinUsesPhotoOnlyForActivePublicCabins(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	for _, owner := range []struct {
+		name, whatsapp, cedula string
+		active                 bool
+	}{
+		{name: "Sin contacto", whatsapp: "", cedula: "123456", active: true},
+		{name: "Dueño inactivo", whatsapp: "573001234567", cedula: "234567", active: false},
+		{name: "Dueño activo", whatsapp: "573009876543", cedula: "345678", active: true},
+	} {
+		if _, err := database.Exec(`INSERT INTO owners (name, whatsapp, pin_hash, cedula, active) VALUES (?, ?, 'hash', ?, ?)`, owner.name, owner.whatsapp, owner.cedula, owner.active); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, cabin := range []struct {
+		ownerID int
+		name    string
+		active  bool
+		photo   string
+	}{
+		{ownerID: 1, name: "Sin contacto", active: true, photo: "https://example.com/private.jpg"},
+		{ownerID: 2, name: "Dueño inactivo", active: true, photo: "https://example.com/inactive-owner.jpg"},
+		{ownerID: 3, name: "Cabaña inactiva", active: false, photo: "https://example.com/inactive-cabin.jpg"},
+		{ownerID: 3, name: "Cabaña activa", active: true, photo: "https://example.com/active.jpg"},
+	} {
+		result, err := database.Exec(`INSERT INTO cabins (owner_id, name, included_guests, day_price, night_price, active) VALUES (?, ?, 2, 100000, 200000, ?)`, cabin.ownerID, cabin.name, cabin.active)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cabinID, err := result.LastInsertId()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := database.Exec(`INSERT INTO cabin_photos (cabin_id, photo_url, position) VALUES (?, ?, 0)`, cabinID, cabin.photo); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	featured, err := NewCabinService(conn).FeaturedCabin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if featured == nil || featured.Name != "Cabaña activa" || len(featured.Photos) != 1 || featured.Photos[0].URL != "https://example.com/active.jpg" {
+		t.Fatalf("featured cabin = %+v, want active public cabin photo only", featured)
+	}
+}
+
+func TestFeaturedCabinIsEmptyWithoutEligiblePhoto(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+
+	featured, err := NewCabinService(conn).FeaturedCabin()
+	if err != nil || featured != nil {
+		t.Fatalf("featured cabin = %+v, err = %v; want no cabin without error", featured, err)
+	}
+}
+
+func TestRandomPublicCabinsReturnsThreeActiveContactableCabins(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	if _, err := database.Exec(`
+		INSERT INTO owners (name, whatsapp, pin_hash, cedula, active) VALUES
+			('Dueño activo', '573001234567', 'hash', '123456', 1),
+			('Sin WhatsApp', '', 'hash', '234567', 1),
+			('Dueño inactivo', '573009876543', 'hash', '345678', 0);
+		INSERT INTO cabins (owner_id, name, included_guests, day_price, night_price, active) VALUES
+			(1, 'Cabaña uno', 2, 100000, 200000, 1),
+			(1, 'Cabaña dos', 2, 100000, 200000, 1),
+			(1, 'Cabaña tres', 2, 100000, 200000, 1),
+			(1, 'Cabaña cuatro', 2, 100000, 200000, 1),
+			(1, 'Cabaña cinco', 2, 100000, 200000, 1),
+			(2, 'Cabaña sin WhatsApp', 2, 100000, 200000, 1),
+			(3, 'Cabaña de dueño inactivo', 2, 100000, 200000, 1),
+			(1, 'Cabaña inactiva', 2, 100000, 200000, 0);
+		INSERT INTO cabin_photos (cabin_id, photo_url, position)
+		SELECT id, 'https://example.com/cabana-' || id || '.jpg', 0 FROM cabins WHERE owner_id = 1;
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	cabins, err := NewCabinService(conn).RandomPublicCabins()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cabins) != 3 {
+		t.Fatalf("got %d random public cabins, want 3: %+v", len(cabins), cabins)
+	}
+	allowed := map[string]bool{"Cabaña uno": true, "Cabaña dos": true, "Cabaña tres": true, "Cabaña cuatro": true, "Cabaña cinco": true}
+	seen := make(map[string]bool, len(cabins))
+	for _, cabin := range cabins {
+		if !allowed[cabin.Name] || seen[cabin.Name] || !cabin.Active || !cabin.OwnerActive || cabin.OwnerWhatsApp == "" || len(cabin.Photos) != 1 {
+			t.Errorf("returned ineligible or duplicate cabin: %+v", cabin)
+		}
+		seen[cabin.Name] = true
+	}
+}
+
 func migrationSQL(t *testing.T, excluded ...string) []string {
 	t.Helper()
 	exclude := make(map[string]bool, len(excluded))

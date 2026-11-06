@@ -4,6 +4,8 @@ import (
 	"strconv"
 
 	lucide "github.com/eduardolat/gomponents-lucide"
+	hx "maragu.dev/gomponents-htmx"
+	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 
@@ -94,10 +96,10 @@ func reservationDetailsEl(inquiry models.Inquiry, owner bool) Node {
 				)
 			}))),
 		),
-		If(inquiry.Status == models.InquiryReserved || inquiry.Status == models.InquiryPending, Div(Class("mt-6 flex flex-wrap gap-3 border-t border-line pt-5"),
-			A(Href(editURL), Attr("hx-get", editURL), Attr("hx-target", "#modal"), Attr("hx-swap", "outerHTML"), Attr("hx-disabled-elt", "this"), Class("inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white hover:brightness-90"), Text(editLabel)),
-			Form(Method("post"), Action(cancelURL), Attr("hx-post", cancelURL), Attr("hx-target", listTarget), Attr("hx-swap", "outerHTML"), Attr("hx-confirm", cancelConfirm), Class("inline-flex"),
-				Button(Type("submit"), Class("inline-flex min-h-11 items-center justify-center rounded-lg border border-red-200 px-5 py-2.5 font-bold text-red-800 hover:bg-red-50"), Text(cancelLabel)),
+		If(inquiry.Status == models.InquiryReserved || inquiry.Status == models.InquiryPending, components.FormActions(
+			A(Href(editURL), hx.Get(editURL), hx.Target("#modal"), hx.Swap("outerHTML"), hx.DisabledElt("this"), Class(components.FormPrimaryClass), Text(editLabel)),
+			Form(Method("post"), Action(cancelURL), hx.Post(cancelURL), hx.Target(listTarget), hx.Swap("outerHTML"), hx.Confirm(cancelConfirm), Class("w-full sm:w-auto"),
+				Button(Type("submit"), Class("inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-red-200 px-5 py-2.5 font-bold text-red-800 hover:bg-red-50 sm:w-auto"), Text(cancelLabel)),
 			),
 		)),
 	)

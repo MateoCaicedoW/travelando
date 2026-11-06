@@ -13,6 +13,8 @@ import (
 
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	. "maragu.dev/gomponents/html"
 )
 
@@ -33,7 +35,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 func New(w http.ResponseWriter, r *http.Request) {
 	dialog := ownerCreateDialogEl(nil, false)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := dialog.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
@@ -80,10 +82,10 @@ func renderOwnersPage(w http.ResponseWriter, r *http.Request, svc services.Owner
 func renderOwnersContent(w http.ResponseWriter, r *http.Request, owners []models.Owner, editID int64, editState *ownerFormState, status int, flashLevel, flashMessage string) {
 	content := ownersEl(owners, editID, editState)
 	if flashMessage != "" {
-		content = Group{content, Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast(flashMessage, flashLevel))}
+		content = Group{content, Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast(flashMessage, flashLevel))}
 	}
 	w.WriteHeader(status)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := content.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
@@ -102,7 +104,7 @@ func renderOwnerCreateError(w http.ResponseWriter, r *http.Request, svc services
 		return
 	}
 	content := ownersEl(owners, 0, nil)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		content = Group{content, ownerCreateDialogEl(state, true)}
 		w.WriteHeader(status)
 		if err := content.Render(w); err != nil {
@@ -118,7 +120,7 @@ func renderOwnerCreateError(w http.ResponseWriter, r *http.Request, svc services
 }
 
 func renderOwnerCreateSuccess(w http.ResponseWriter, r *http.Request, svc services.OwnerService) {
-	if !helpers.IsHTMX(r) {
+	if !hxhttp.IsRequest(r.Header) {
 		if err := helpers.SetFlash(r, helpers.FlashSuccess, "Dueño creado."); err != nil {
 			http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 			return
@@ -133,8 +135,8 @@ func renderOwnerCreateSuccess(w http.ResponseWriter, r *http.Request, svc servic
 	}
 	response := Group{
 		ownersEl(owners, 0, nil),
-		Div(ID("modal"), Attr("hx-swap-oob", "delete")),
-		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Dueño creado.", helpers.FlashSuccess)),
+		Div(ID("modal"), hx.SwapOOB("delete")),
+		Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast("Dueño creado.", helpers.FlashSuccess)),
 	}
 	if err := response.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)
@@ -175,7 +177,7 @@ func SetActive(w http.ResponseWriter, r *http.Request) {
 	if !active {
 		message = "Dueño desactivado; cabañas se mantienen guardadas y dejan de mostrarse."
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		renderOwnersPage(w, r, svc, 0, nil, http.StatusOK, helpers.FlashSuccess, message)
 		return
 	}

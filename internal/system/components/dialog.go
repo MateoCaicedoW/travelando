@@ -2,6 +2,7 @@ package components
 
 import (
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/html"
 )
 
@@ -18,7 +19,7 @@ func CustomDialog(p DialogProps) Node {
 	}
 	return Div(
 		ID("modal"),
-		If(p.SwapOOB != "", Attr("hx-swap-oob", p.SwapOOB)),
+		If(p.SwapOOB != "", hx.SwapOOB(p.SwapOOB)),
 		Class("fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-2 sm:p-3 md:p-5"),
 		Data("modal-layer", "true"),
 		Data("controller", "modal"),

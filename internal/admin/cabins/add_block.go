@@ -11,6 +11,7 @@ import (
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func AddBlock(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +54,7 @@ func AddBlock(w http.ResponseWriter, r *http.Request) {
 		helpers.Redirect(w, r, "/admin/cabins/"+strconv.FormatInt(id, 10)+"/edit")
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		refreshCabinEdit(w, r, id)
 		return
 	}

@@ -59,10 +59,13 @@ func TestReservationFormShowsGuestContactAndCommissionHistory(t *testing.T) {
 	if err := reservationForm(inquiry, nil, true, "").Render(&html); err != nil {
 		t.Fatal(err)
 	}
-	for _, expected := range []string{"guest@example.com", "573001234567", "Ajustes de comisión", "Dueño", "/owner/reservations/42", "modal#close"} {
+	for _, expected := range []string{"guest@example.com", "573001234567", "Ajustes de comisión", "Dueño", "/owner/reservations/42", "modal#close", "<svg"} {
 		if !strings.Contains(html.String(), expected) {
 			t.Errorf("reservation form missing %q", expected)
 		}
+	}
+	if strings.Contains(html.String(), "×") {
+		t.Error("reservation form close button should use a Lucide icon instead of a text glyph")
 	}
 }
 
@@ -101,7 +104,7 @@ func TestReservationEditFormAvoidsNestedCardPadding(t *testing.T) {
 	if err := reservationForm(inquiry, nil, false, "reservations").Render(&html); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(html.String(), `class="w-full px-4 py-5 sm:px-6 sm:py-6"`) || strings.Contains(html.String(), `rounded-2xl border border-line bg-white p-5 sm:p-7`) {
+	if !strings.Contains(html.String(), `class="w-full px-4 py-5 sm:px-6 sm:py-6"`) || strings.Contains(html.String(), `rounded-2xl border border-line bg-white p-4 sm:p-6`) {
 		t.Fatalf("reservation edit form should use one compact content padding, got: %s", html.String())
 	}
 }

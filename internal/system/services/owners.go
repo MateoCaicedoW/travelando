@@ -26,6 +26,7 @@ const (
 
 type OwnerService interface {
 	Owners() ([]models.Owner, error)
+	OwnerByID(ownerID int64) (*models.Owner, error)
 	CreateOwner(*models.Owner, string) error
 	UpdateOwner(*models.Owner, string) error
 	AuthenticateOwner(cedula, pin string) (*models.Owner, error)
@@ -69,6 +70,26 @@ func (s *ownerService) Owners() ([]models.Owner, error) {
 		owners = append(owners, owner)
 	}
 	return owners, rows.Err()
+}
+
+func (s *ownerService) OwnerByID(ownerID int64) (*models.Owner, error) {
+	if ownerID < 1 {
+		return nil, ErrInvalidInput
+	}
+	db, err := s.conn()
+	if err != nil {
+		return nil, err
+	}
+	var owner models.Owner
+	err = db.QueryRow(`SELECT id, name, cedula, whatsapp FROM owners WHERE id = ?`, ownerID).
+		Scan(&owner.ID, &owner.Name, &owner.Cedula, &owner.WhatsApp)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &owner, nil
 }
 
 func (s *ownerService) CreateOwner(owner *models.Owner, pin string) error {

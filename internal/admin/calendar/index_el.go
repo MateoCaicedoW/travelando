@@ -6,6 +6,7 @@ import (
 	"time"
 
 	lucide "github.com/eduardolat/gomponents-lucide"
+	hx "maragu.dev/gomponents-htmx"
 	"travelando/internal/system/components"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
@@ -19,7 +20,7 @@ type weekday struct{ short, name string }
 var weekdays = [...]weekday{{"Dom", "domingo"}, {"Lun", "lunes"}, {"Mar", "martes"}, {"Mié", "miércoles"}, {"Jue", "jueves"}, {"Vie", "viernes"}, {"Sáb", "sábado"}}
 
 func calendarPageEl(view calendarView) Node {
-	return Div(Class("mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12"),
+	return Div(Class("mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6"),
 		components.PageHeading("Calendario", "Consulta la ocupación mensual de todas las cabañas."),
 		calendarViewEl(view),
 	)
@@ -27,10 +28,10 @@ func calendarPageEl(view calendarView) Node {
 
 func calendarViewEl(view calendarView) Node {
 	return Div(ID("calendar-view"),
-		Div(Class("grid gap-5 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,2fr)] lg:items-start"),
+		Div(Class("grid gap-4 lg:grid-cols-[minmax(15rem,0.8fr)_minmax(0,2fr)] lg:items-start"),
 			cabinSummaryEl(view.Cabins, view.MonthName),
 			Div(Class("overflow-visible rounded-2xl border border-line bg-white"),
-				Div(Class("flex flex-col gap-4 border-b border-line bg-cream/60 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"),
+				Div(Class("flex flex-col gap-4 border-b border-line bg-cream/60 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4"),
 					H2(Class("text-xl font-extrabold capitalize text-ink sm:text-2xl"), Text(view.MonthName+" "), Span(Class("font-semibold text-muted"), Text(strconv.Itoa(view.Year)))),
 					Div(Class("flex flex-wrap items-center gap-2"),
 						monthControlsEl(view),
@@ -40,17 +41,17 @@ func calendarViewEl(view calendarView) Node {
 						),
 					),
 				),
-				Div(Class("overflow-visible p-2 sm:p-4"),
+				Div(Class("overflow-visible p-2 sm:p-3"),
 					Table(Class("w-full table-fixed border-separate border-spacing-1.5"),
 						Caption(Class("sr-only"), Textf("Calendario de ocupación de %s %d", view.MonthName, view.Year)),
 						THead(Tr(Map(weekdays[:], func(day weekday) Node {
-							return Th(Scope("col"), Attr("aria-label", day.name), Class("pb-2 text-center text-xs font-extrabold uppercase tracking-wide text-muted sm:text-sm"), Text(day.short))
+							return Th(Scope("col"), Attr("aria-label", day.name), Class("pb-2 text-center text-label font-extrabold uppercase tracking-wide text-muted"), Text(day.short))
 						}))),
 						TBody(Map(view.Weeks, func(week []time.Time) Node {
 							return Tr(Group(Map(week, func(day time.Time) Node { return calendarDayEl(day, view) })))
 						})),
 					),
-					Div(Class("mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-4 text-xs font-semibold text-muted"),
+					Div(Class("mt-3 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-3 text-xs font-semibold text-muted"),
 						legendItem("border border-line bg-white", "Disponible"),
 						legendItem("bg-forest", "Reserva confirmada"),
 						legendItem("bg-brand", "Bloqueo manual"),
@@ -63,8 +64,8 @@ func calendarViewEl(view calendarView) Node {
 }
 
 func cabinSummaryEl(cabins []cabinSummary, month string) Node {
-	return Section(Attr("aria-labelledby", "occupancy-heading"), Class("rounded-2xl border border-line bg-white p-4 sm:p-5"),
-		Div(Class("flex items-start justify-between gap-3 border-b border-line pb-4"),
+	return Section(Attr("aria-labelledby", "occupancy-heading"), Class("rounded-2xl border border-line bg-white p-3 sm:p-4"),
+		Div(Class("flex items-start justify-between gap-3 border-b border-line pb-3"),
 			Div(H2(ID("occupancy-heading"), Class("text-lg font-extrabold text-ink"), Text("Cabañas ocupadas")), P(Class("mt-1 text-sm capitalize text-muted"), Text(month))),
 			Span(Class("rounded-full bg-cream px-2.5 py-1 text-xs font-bold text-brand-dark"), Textf("%d", len(cabins))),
 		),
@@ -80,19 +81,19 @@ func cabinSummaryEl(cabins []cabinSummary, month string) Node {
 				Span(Class("shrink-0 rounded-full px-2.5 py-1 text-xs font-bold "+statusClass), Text(status)),
 			)
 		})),
-		P(Class("mt-4 border-t border-line pt-3 text-xs leading-5 text-muted"), Text("Las reservas pendientes no bloquean fechas.")),
+		P(Class("mt-3 border-t border-line pt-3 text-xs leading-5 text-muted"), Text("Las reservas pendientes no bloquean fechas.")),
 	)
 }
 
 func monthControlsEl(view calendarView) Node {
-	return Form(Method("get"), Action("/admin/calendar"), Attr("hx-get", "/admin/calendar"), Attr("hx-target", "#calendar-view"), Attr("hx-swap", "outerHTML"), Attr("hx-push-url", "true"), Class("flex items-center gap-2"),
+	return Form(Method("get"), Action("/admin/calendar"), hx.Get("/admin/calendar"), hx.Target("#calendar-view"), hx.Swap("outerHTML"), hx.PushURL("true"), Class("flex items-center gap-2"),
 		Label(Class("sr-only"), For("calendar-month"), Text("Mes")),
-		Select(ID("calendar-month"), Name("month"), Attr("aria-label", "Mes"), Attr("hx-get", "/admin/calendar"), Attr("hx-trigger", "change"), Attr("hx-include", "#calendar-year"), Attr("hx-target", "#calendar-view"), Attr("hx-swap", "outerHTML"), Attr("hx-push-url", "true"), Class("min-h-10 w-32 rounded-lg border border-line bg-white px-2 text-sm font-bold text-ink"), Map(monthNames[1:], func(name string) Node {
+		Select(ID("calendar-month"), Name("month"), Attr("aria-label", "Mes"), hx.Get("/admin/calendar"), hx.Trigger("change"), hx.Include("#calendar-year"), hx.Target("#calendar-view"), hx.Swap("outerHTML"), hx.PushURL("true"), Class("min-h-10 w-32 rounded-lg border border-line bg-white px-2 text-sm font-bold text-ink"), Map(monthNames[1:], func(name string) Node {
 			month := monthNumber(name)
 			return Option(Value(strconv.Itoa(int(month))), If(month == view.Month, Selected()), Text(monthNames[month]))
 		})),
 		Label(Class("sr-only"), For("calendar-year"), Text("Año")),
-		Select(ID("calendar-year"), Name("year"), Attr("aria-label", "Año"), Attr("hx-get", "/admin/calendar"), Attr("hx-trigger", "change"), Attr("hx-include", "#calendar-month"), Attr("hx-target", "#calendar-view"), Attr("hx-swap", "outerHTML"), Attr("hx-push-url", "true"), Class("min-h-10 w-24 rounded-lg border border-line bg-white px-2 text-sm font-bold text-ink"), Map(view.YearOptions, func(year int) Node {
+		Select(ID("calendar-year"), Name("year"), Attr("aria-label", "Año"), hx.Get("/admin/calendar"), hx.Trigger("change"), hx.Include("#calendar-month"), hx.Target("#calendar-view"), hx.Swap("outerHTML"), hx.PushURL("true"), Class("min-h-10 w-24 rounded-lg border border-line bg-white px-2 text-sm font-bold text-ink"), Map(view.YearOptions, func(year int) Node {
 			return Option(Value(strconv.Itoa(year)), If(year == view.Year, Selected()), Text(strconv.Itoa(year)))
 		})),
 	)
@@ -109,7 +110,7 @@ func monthNumber(name string) time.Month {
 
 func monthLink(date time.Time, icon Node, ariaLabel string) Node {
 	url := monthURL(date)
-	return A(Href(url), Attr("aria-label", ariaLabel), Attr("hx-get", url), Attr("hx-target", "#calendar-view"), Attr("hx-swap", "outerHTML"), Attr("hx-push-url", "true"), Class("grid size-10 place-items-center rounded-lg border border-line bg-white text-lg font-bold text-ink transition hover:border-brand hover:bg-cream hover:text-brand-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), icon)
+	return A(Href(url), Attr("aria-label", ariaLabel), hx.Get(url), hx.Target("#calendar-view"), hx.Swap("outerHTML"), hx.PushURL("true"), Class("grid size-10 place-items-center rounded-lg border border-line bg-white text-lg font-bold text-ink transition hover:border-brand hover:bg-cream hover:text-brand-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), icon)
 }
 
 func calendarDayEl(day time.Time, view calendarView) Node {

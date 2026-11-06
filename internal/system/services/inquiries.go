@@ -24,6 +24,8 @@ type InquiryService interface {
 	InquiryForOwner(ownerID, id int64) (*models.Inquiry, error)
 	ReservationForOwner(ownerID, id int64) (*models.Inquiry, error)
 	ResolveInquiry(token string, status models.InquiryStatus, finalTotal int64) error
+	ConfirmPendingInquiry(id, finalTotal int64) error
+	ConfirmPendingInquiryForOwner(ownerID, id, finalTotal int64) error
 	UpdatePendingInquiry(id int64, update models.InquiryUpdate) error
 	UpdatePendingInquiryForOwner(ownerID, id int64, update models.InquiryUpdate) error
 	UpdateReservation(id int64, update models.ReservationUpdate) error
@@ -733,7 +735,10 @@ func (s *inquiryService) InquiryByToken(token string) (*models.Inquiry, error) {
 }
 
 func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatus, finalTotal int64) error {
-	if status != models.InquiryReserved && status != models.InquiryLost || status == models.InquiryReserved && (finalTotal < 0 || finalTotal > MaxAmountCOP) {
+	if status == models.InquiryReserved {
+		return s.confirmPendingInquiry("i.report_token_hash = ?", []any{hashToken(token)}, 0, finalTotal)
+	}
+	if status != models.InquiryLost {
 		return ErrInvalidInput
 	}
 	db, err := s.conn()
@@ -747,13 +752,7 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 	defer tx.Rollback()
 
 	var current models.InquiryStatus
-	var commissionBP int
-	var deposit int64
-	err = tx.QueryRow(`
-		SELECT i.status, cs.commission_bps, i.deposit_cop
-		FROM inquiries i JOIN commission_settings cs ON cs.id = 1
-		WHERE i.report_token_hash = ?
-	`, hashToken(token)).Scan(&current, &commissionBP, &deposit)
+	err = tx.QueryRow(`SELECT status FROM inquiries WHERE report_token_hash = ?`, hashToken(token)).Scan(&current)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
@@ -763,41 +762,99 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 	if current != models.InquiryPending {
 		return ErrInvalidInput
 	}
-	if status == models.InquiryReserved && finalTotal < deposit {
+	result, err := tx.Exec(`UPDATE inquiries SET status = 'lost', resolved_at = CURRENT_TIMESTAMP WHERE report_token_hash = ? AND status = 'pending'`, hashToken(token))
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
 		return ErrInvalidInput
 	}
+	return tx.Commit()
+}
 
-	var result sql.Result
-	if status == models.InquiryLost {
-		result, err = tx.Exec(`UPDATE inquiries SET status = 'lost', resolved_at = CURRENT_TIMESTAMP WHERE report_token_hash = ? AND status = 'pending'`, hashToken(token))
-	} else {
-		commission, err := Commission(finalTotal-deposit, commissionBP)
-		if err != nil {
-			return err
-		}
-		result, err = tx.Exec(`
-			UPDATE inquiries
-			SET status = 'reserved', final_total = ?, commission_bps = ?, commission_due = ?, resolved_at = CURRENT_TIMESTAMP
-			WHERE report_token_hash = ? AND status = 'pending'
-			  AND NOT EXISTS (
-				SELECT 1 FROM inquiries other
-				WHERE other.cabin_id = inquiries.cabin_id AND other.id <> inquiries.id AND other.status = 'reserved'
-				  AND datetime(inquiries.date_from || ' ' || inquiries.start_time) < datetime(
-					  (CASE WHEN other.stay_type = 'day_use' THEN other.date_from ELSE other.date_to END) || ' ' || other.end_time,
-					  printf('+%d hours', other.cleaning_hours)
-				  )
-				  AND datetime(
-					  (CASE WHEN inquiries.stay_type = 'day_use' THEN inquiries.date_from ELSE inquiries.date_to END) || ' ' || inquiries.end_time,
-					  printf('+%d hours', inquiries.cleaning_hours)
-				  ) > datetime(other.date_from || ' ' || other.start_time)
-			  )
-			  AND NOT EXISTS (
-				SELECT 1 FROM cabin_blocks b
-				WHERE b.cabin_id = inquiries.cabin_id
-				  AND b.date_from < inquiries.date_to AND b.date_to > inquiries.date_from
-			  )
-		`, finalTotal, commissionBP, commission, hashToken(token))
+func (s *inquiryService) ConfirmPendingInquiry(inquiryID, finalTotal int64) error {
+	if inquiryID < 1 {
+		return ErrInvalidInput
 	}
+	return s.confirmPendingInquiry("i.id = ?", []any{inquiryID}, 0, finalTotal)
+}
+
+func (s *inquiryService) ConfirmPendingInquiryForOwner(ownerID, inquiryID, finalTotal int64) error {
+	if ownerID < 1 || inquiryID < 1 {
+		return ErrInvalidInput
+	}
+	return s.confirmPendingInquiry("i.id = ? AND c.owner_id = ?", []any{inquiryID, ownerID}, ownerID, finalTotal)
+}
+
+func (s *inquiryService) confirmPendingInquiry(where string, args []any, ownerID, finalTotal int64) error {
+	if finalTotal < 0 || finalTotal > MaxAmountCOP {
+		return ErrInvalidInput
+	}
+	db, err := s.conn()
+	if err != nil {
+		return err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var current models.InquiryStatus
+	var inquiryID int64
+	var commissionBP int
+	var deposit int64
+	queryArgs := append([]any(nil), args...)
+	err = tx.QueryRow(`
+		SELECT i.id, i.status, cs.commission_bps, i.deposit_cop
+		FROM inquiries i JOIN cabins c ON c.id = i.cabin_id JOIN commission_settings cs ON cs.id = 1
+		WHERE `+where, queryArgs...).Scan(&inquiryID, &current, &commissionBP, &deposit)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if current != models.InquiryPending || finalTotal < deposit {
+		return ErrInvalidInput
+	}
+	commission, err := Commission(finalTotal-deposit, commissionBP)
+	if err != nil {
+		return err
+	}
+	updateArgs := []any{finalTotal, commissionBP, commission}
+	updateWhere := "id = ? AND status = 'pending'"
+	updateArgs = append(updateArgs, inquiryID)
+	if ownerID > 0 {
+		updateWhere += " AND cabin_id IN (SELECT id FROM cabins WHERE owner_id = ?)"
+		updateArgs = append(updateArgs, ownerID)
+	}
+	result, err := tx.Exec(`
+		UPDATE inquiries
+		SET status = 'reserved', final_total = ?, commission_bps = ?, commission_due = ?, resolved_at = CURRENT_TIMESTAMP
+		WHERE `+updateWhere+`
+		  AND NOT EXISTS (
+			SELECT 1 FROM inquiries other
+			WHERE other.cabin_id = inquiries.cabin_id AND other.id <> inquiries.id AND other.status = 'reserved'
+			  AND datetime(inquiries.date_from || ' ' || inquiries.start_time) < datetime(
+				  (CASE WHEN other.stay_type = 'day_use' THEN other.date_from ELSE other.date_to END) || ' ' || other.end_time,
+				  printf('+%d hours', other.cleaning_hours)
+			  )
+			  AND datetime(
+				  (CASE WHEN inquiries.stay_type = 'day_use' THEN inquiries.date_from ELSE inquiries.date_to END) || ' ' || inquiries.end_time,
+				  printf('+%d hours', inquiries.cleaning_hours)
+			  ) > datetime(other.date_from || ' ' || other.start_time)
+		  )
+		  AND NOT EXISTS (
+			SELECT 1 FROM cabin_blocks b
+			WHERE b.cabin_id = inquiries.cabin_id
+			  AND b.date_from < inquiries.date_to AND b.date_to > inquiries.date_from
+		  )
+	`, updateArgs...)
 	if err != nil {
 		if strings.Contains(err.Error(), "dates unavailable") {
 			return ErrUnavailable
@@ -809,10 +866,7 @@ func (s *inquiryService) ResolveInquiry(token string, status models.InquiryStatu
 		return err
 	}
 	if n == 0 {
-		if status == models.InquiryReserved {
-			return ErrUnavailable
-		}
-		return ErrInvalidInput
+		return ErrUnavailable
 	}
 	return tx.Commit()
 }

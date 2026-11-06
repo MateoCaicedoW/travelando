@@ -66,6 +66,48 @@ func TestCancelReservationReleasesDatesAndWaivesUnpaidCommission(t *testing.T) {
 	}
 }
 
+func TestConfirmPendingInquiryForOwnerScopesAndReserves(t *testing.T) {
+	database, conn := cabinTestDatabase(t)
+	defer database.Close()
+	if _, err := database.Exec(`
+		INSERT INTO owners (name, whatsapp, pin_hash) VALUES ('Dueño uno', '573001234567', ''), ('Dueño dos', '573001234568', '');
+		INSERT INTO cabins (owner_id, name, included_guests, extra_guest_price, day_price, night_price)
+		VALUES (1, 'Cabaña', 2, 0, 100000, 200000);
+		UPDATE commission_settings SET commission_bps = 1000 WHERE id = 1;
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	inquiries := NewInquiryService(conn)
+	inquiry := models.Inquiry{
+		CabinID: 1, GuestName: "Huésped", GuestCedula: "12345678", GuestPhone: "573001234567", GuestEmail: "guest@example.com", TermsAccepted: true,
+		StayType: models.StayDayUse, DateFrom: "2099-02-10", DateTo: "2099-02-10", Guests: 2,
+	}
+	if _, err := inquiries.CreateInquiry(&inquiry); err != nil {
+		t.Fatal(err)
+	}
+	var id int64
+	if err := database.QueryRow(`SELECT id FROM inquiries WHERE guest_email = 'guest@example.com'`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if err := inquiries.ConfirmPendingInquiryForOwner(2, id, 100000); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("confirmation by unrelated owner = %v, want ErrNotFound", err)
+	}
+	if err := inquiries.ConfirmPendingInquiryForOwner(1, id, 100000); err != nil {
+		t.Fatal(err)
+	}
+	confirmed, err := inquiries.AdminReservation(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if confirmed.Status != models.InquiryReserved || confirmed.FinalTotal != 100000 || confirmed.Commission != 10000 {
+		t.Fatalf("confirmed inquiry = %+v, want reserved total 100000 and commission 10000", confirmed)
+	}
+	if err := inquiries.ConfirmPendingInquiryForOwner(1, id, 100000); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("repeated confirmation error = %v, want ErrInvalidInput", err)
+	}
+}
+
 func TestCancelReservationKeepsPaidCommissionInOwnerHistory(t *testing.T) {
 	database, conn := cabinTestDatabase(t)
 	defer database.Close()

@@ -9,10 +9,11 @@ import (
 
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	. "maragu.dev/gomponents/html"
 	"travelando/internal/system"
 	"travelando/internal/system/components"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 )
 
@@ -34,7 +35,7 @@ func NewBlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	modal := ownerExternalBlockDialogEl(view.Cabins, nil, view.Month, view.Year, false)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := modal.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
@@ -53,13 +54,13 @@ func renderOwnerCalendar(w http.ResponseWriter, r *http.Request, status int, fla
 	}
 	content := ownerCalendarContentEl(view)
 	if closeModal {
-		content = Group{content, Div(ID("modal"), Attr("hx-swap-oob", "delete"))}
+		content = Group{content, Div(ID("modal"), hx.SwapOOB("delete"))}
 	}
 	if flashMessage != "" {
-		content = Group{content, Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast(flashMessage, flashLevel))}
+		content = Group{content, Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast(flashMessage, flashLevel))}
 	}
 	w.WriteHeader(status)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		return content.Render(w)
 	}
 	return system.Layout{Title: "Mis cabañas | Travelando", Portal: system.PortalOwner, Yield: content}.New(r).Render(w)
@@ -71,9 +72,9 @@ func renderOwnerCalendarWithBlockModal(w http.ResponseWriter, r *http.Request, s
 		return err
 	}
 	content := ownerCalendarContentEl(view)
-	modal := ownerExternalBlockDialogEl(view.Cabins, state, view.Month, view.Year, helpers.IsHTMX(r))
+	modal := ownerExternalBlockDialogEl(view.Cabins, state, view.Month, view.Year, hxhttp.IsRequest(r.Header))
 	w.WriteHeader(status)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		return Group{content, modal}.Render(w)
 	}
 	return system.Layout{Title: "Mis cabañas | Travelando", Portal: system.PortalOwner, Yield: Group{content, modal}}.New(r).Render(w)

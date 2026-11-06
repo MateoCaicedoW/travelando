@@ -22,10 +22,13 @@ func TestReservationsListIncludesCancelledHistoryAndDetails(t *testing.T) {
 	if err := reservationsContentEl(inquiries).Render(&html); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Solicitud activa", "Huésped activo", "Huésped anterior", "Pendiente", "Reservada", "Cancelada", "Ver", "Editar", "Cancelar", `href="/admin/reservations/3"`, `href="/admin/reservations/4"`, `href="/admin/reservations/5"`, `action="/admin/reservations/3/cancel"`, `href="/admin/inquiries/3/edit?return_to=reservations"`, "125.000"} {
+	for _, want := range []string{"responsive-data-table", `data-label="Huésped"`, `data-label="Cabaña / dueño"`, `data-label="Fechas"`, `data-label="Total / estimado"`, `data-label="Estado"`, `data-label="Acciones"`, `class="dropdown-menu relative inline-flex"`, `aria-haspopup="menu"`, `role="menu"`, `role="menuitem"`, "Solicitud activa", "Huésped activo", "Huésped anterior", "Pendiente", "Reservada", "Cancelada", "Ver", "Confirmar reserva", "Editar", "Cancelar", `href="/admin/reservations/3"`, `href="/admin/reservations/3/confirm"`, `href="/admin/reservations/4"`, `href="/admin/reservations/5"`, `action="/admin/reservations/3/cancel"`, `href="/admin/inquiries/3/edit?return_to=reservations"`, "125.000"} {
 		if !strings.Contains(html.String(), want) {
 			t.Errorf("reservations list missing %q", want)
 		}
+	}
+	if strings.Contains(html.String(), "Ver reporte") || strings.Contains(html.String(), "/report") || strings.Contains(html.String(), `href="/admin/reservations/4/confirm"`) || strings.Contains(html.String(), `href="/admin/reservations/5/confirm"`) {
+		t.Fatalf("report action or confirmation on non-pending reservation found: %s", html.String())
 	}
 }
 
@@ -52,6 +55,9 @@ func TestConfirmedReservationDetailsOfferEditAndCancel(t *testing.T) {
 		if !strings.Contains(html.String(), want) {
 			t.Errorf("confirmed reservation details missing %q", want)
 		}
+	}
+	if strings.Contains(html.String(), "/report") || strings.Contains(html.String(), "Ver reporte") {
+		t.Fatalf("confirmed reservation details expose report action: %s", html.String())
 	}
 }
 

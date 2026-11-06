@@ -10,6 +10,8 @@ import (
 )
 
 type CabinService interface {
+	FeaturedCabin() (*models.Cabin, error)
+	RandomPublicCabins() ([]models.Cabin, error)
 	CabinsPage(page, pageSize int) (CabinPageResult, error)
 	SearchCabinsPage(search string, page, pageSize int) (CabinPageResult, error)
 	Cabin(id int64) (*models.Cabin, error)
@@ -24,6 +26,65 @@ type CabinPageResult struct {
 	Page       int
 	Total      int
 	TotalPages int
+}
+
+func (s *cabinService) FeaturedCabin() (*models.Cabin, error) {
+	db, err := s.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	var cabin models.Cabin
+	var photo models.CabinPhoto
+	err = db.QueryRow(`
+		SELECT ` + cabinSelectColumns + `, p.photo_url, p.position
+		FROM cabins c
+		JOIN owners o ON o.id = c.owner_id
+		JOIN cabin_photos p ON p.cabin_id = c.id
+		WHERE c.active = 1 AND o.active = 1 AND trim(o.whatsapp) <> '' AND trim(p.photo_url) <> ''
+		ORDER BY c.id, p.position, p.id
+		LIMIT 1
+	`).Scan(append(cabinScanArgs(&cabin), &photo.URL, &photo.Position)...)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	cabin.Photos = []models.CabinPhoto{photo}
+	return &cabin, nil
+}
+
+func (s *cabinService) RandomPublicCabins() ([]models.Cabin, error) {
+	db, err := s.conn()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := db.Query(cabinSelect + `
+		WHERE c.active = 1 AND o.active = 1 AND trim(o.whatsapp) <> ''
+		  AND (c.accepts_day_use = 1 OR c.accepts_overnight = 1)
+		ORDER BY RANDOM()
+		LIMIT 3
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var cabins []models.Cabin
+	for rows.Next() {
+		cabin, err := scanCabin(rows)
+		if err != nil {
+			return nil, err
+		}
+		cabins = append(cabins, cabin)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	return cabins, attachCabinPhotos(db, cabins)
 }
 
 func (s *cabinService) CabinsPage(page, pageSize int) (CabinPageResult, error) {

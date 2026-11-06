@@ -35,7 +35,7 @@ func searchPageData(r *http.Request, svc services.AvailabilityService) PageData 
 	}
 	data.HasPrevPage = data.Page > 1
 	data.SearchErrors = searchFormErrors(r)
-	data.DidSearch = data.DateFrom != ""
+	data.DidSearch = r.FormValue("date_from") != ""
 	if data.SearchErrors.HasAny() || !data.DidSearch {
 		return data
 	}

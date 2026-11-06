@@ -12,6 +12,8 @@ import (
 
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	"maragu.dev/gomponents/html"
 )
 
@@ -37,7 +39,7 @@ func Cancel(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		inquiries, err := svc.Inquiries()
 		if err != nil {
 			slog.Error("reloading admin reservations after cancellation", "inquiry_id", id, "error", err)
@@ -46,8 +48,8 @@ func Cancel(w http.ResponseWriter, r *http.Request) {
 		}
 		response := Group{
 			reservationsContentEl(reservationEntries(inquiries)),
-			html.Div(html.ID("modal"), Attr("hx-swap-oob", "delete")),
-			html.Div(html.ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Cancelación registrada. Las fechas ya no están bloqueadas.", helpers.FlashSuccess)),
+			html.Div(html.ID("modal"), hx.SwapOOB("delete")),
+			html.Div(html.ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast("Cancelación registrada. Las fechas ya no están bloqueadas.", helpers.FlashSuccess)),
 		}
 		if err := response.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)

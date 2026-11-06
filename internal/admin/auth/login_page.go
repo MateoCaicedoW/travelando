@@ -8,6 +8,7 @@ import (
 
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func LoginPage(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +23,7 @@ func renderLoginPage(w http.ResponseWriter, r *http.Request, status int, fieldEr
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := loginPageEl(fieldErrors).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

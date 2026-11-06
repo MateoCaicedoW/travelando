@@ -44,6 +44,113 @@ func TestBrandUsesTravelandoIcon(t *testing.T) {
 	}
 }
 
+func TestSiteHeaderHidesExploreButtonOnlyOnHome(t *testing.T) {
+	var output bytes.Buffer
+	if err := SiteHeader("/").Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output.String(), "Explorar") {
+		t.Fatal("home header should not show the explore button")
+	}
+
+	output.Reset()
+	if err := SiteHeader("/cabins/1").Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "Explorar") {
+		t.Fatal("cabin detail header should keep the explore button")
+	}
+}
+
+func TestSiteHeaderHidesExploreButtonOnReportPage(t *testing.T) {
+	var output bytes.Buffer
+	if err := SiteHeader("/report/token").Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(output.String(), "Explorar") {
+		t.Fatal("report header should not show the explore button")
+	}
+	if !strings.Contains(output.String(), "Travelando") {
+		t.Fatal("report header should retain the shared brand")
+	}
+}
+
+func TestMobileHeadersUseCompactGutters(t *testing.T) {
+	for name, header := range map[string]Node{
+		"public": SiteHeader("/"),
+		"admin":  AdminMobileBar(),
+		"owner":  OwnerMobileBar(),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var output bytes.Buffer
+			if err := header.Render(&output); err != nil {
+				t.Fatal(err)
+			}
+			if html := output.String(); !strings.Contains(html, "px-2") || strings.Contains(html, "px-5") {
+				t.Fatalf("mobile header should use compact gutters: %s", html)
+			}
+		})
+	}
+}
+
+func TestOwnerNavigationShowsProfileAndLogoutActions(t *testing.T) {
+	var output bytes.Buffer
+	if err := OwnerNavigation("/owner/profile").Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	html := output.String()
+	for _, want := range []string{
+		`href="/owner/profile"`, `aria-label="Perfil"`, `action="/owner/logout"`, "bg-forest text-white",
+		`aria-label="Cerrar sesión"`, `data-portal-navigation-target="logoutButton"`, "hidden flex h-screen", "mt-auto flex items-center", "justify-between", `aria-current="page"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("owner sidebar missing %q: %s", want, html)
+		}
+	}
+	if strings.Contains(html, "dropdown-menu") || strings.Contains(html, "owner-account-menu") {
+		t.Fatal("owner sidebar should not use a profile dropdown")
+	}
+	profile := strings.Index(html, `href="/owner/profile"`)
+	profileEnd := strings.Index(html[profile:], "</a>")
+	if profile < 0 || profileEnd < 0 || !strings.Contains(html[profile:profile+profileEnd], "<svg") || !strings.Contains(html[profile:profile+profileEnd], "rounded-full") || strings.Contains(html[profile:profile+profileEnd], "<span") {
+		t.Fatal("profile should be a round, icon-only link")
+	}
+	logout := strings.Index(html, `action="/owner/logout"`)
+	logoutEnd := strings.Index(html[logout:], "</form>")
+	if logout < 0 || logoutEnd < 0 || !strings.Contains(html[logout:logout+logoutEnd], "<svg") || strings.Contains(html[logout:logout+logoutEnd], "<span") {
+		t.Fatal("logout form should show icon without label")
+	}
+}
+
+func TestPortalCollapseButtonSharesBrandRow(t *testing.T) {
+	for name, navigation := range map[string]Node{
+		"admin": AdminHeader("/admin/"),
+		"owner": OwnerNavigation("/owner/"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			var output bytes.Buffer
+			if err := navigation.Render(&output); err != nil {
+				t.Fatal(err)
+			}
+			html := output.String()
+			start := strings.Index(html, `data-portal-navigation-target="headerRow"`)
+			if start < 0 {
+				t.Fatalf("portal header row missing: %s", html)
+			}
+			row := html[start:]
+			brand := strings.Index(row, `data-portal-navigation-target="brandLabel"`)
+			if brand < 0 {
+				t.Errorf("brand missing from portal header row: %s", row)
+				return
+			}
+			brandEnd := strings.Index(row[brand:], `</a>`)
+			if brandEnd < 0 || !strings.HasPrefix(row[brand+brandEnd:], `</a><div data-portal-navigation-target="collapseRow"`) {
+				t.Errorf("collapse button should follow brand in same header row: %s", row)
+			}
+		})
+	}
+}
+
 func TestSiteFooterIncludesSocialLinks(t *testing.T) {
 	var output bytes.Buffer
 	if err := SiteFooter().Render(&output); err != nil {
@@ -59,6 +166,22 @@ func TestSiteFooterIncludesSocialLinks(t *testing.T) {
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("site footer missing %q: %s", want, html)
+		}
+	}
+}
+
+func TestSiteFooterExplainsTravelandoAndLinksOwnerPortal(t *testing.T) {
+	var output bytes.Buffer
+	if err := SiteFooter().Render(&output); err != nil {
+		t.Fatal(err)
+	}
+	html := output.String()
+	for _, want := range []string{
+		"cabañas para pasadía o estadía", "su disponibilidad en tus fechas", "WhatsApp",
+		`href="/#buscar"`, "Buscar cabañas", `href="/owner/login"`, "Portal de propietarios",
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("footer missing %q: %s", want, html)
 		}
 	}
 }

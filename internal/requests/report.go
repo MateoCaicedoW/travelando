@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"travelando/internal/system/models"
 	"travelando/internal/system/services"
 )
 
@@ -27,5 +28,25 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, http.StatusInternalServerError, "No se pudo cargar la solicitud.")
 		return
 	}
-	renderReportPage(w, r, 0, "Reportar resultado | Travelando", *inquiry, token, nil, nil)
+	cabin, err := reportCabin(services.ServiceSetFromCtx(r.Context()).Cabins, inquiry.CabinID)
+	if err != nil {
+		slog.Error("loading cabin for rental report", "error", err)
+		renderError(w, r, http.StatusInternalServerError, "No se pudo cargar la cabaña.")
+		return
+	}
+	renderReportPage(w, r, 0, "Reportar resultado | Travelando", *inquiry, cabin, token, nil, nil)
+}
+
+func reportCabin(svc services.CabinService, cabinID int64) (models.Cabin, error) {
+	if svc == nil {
+		return models.Cabin{}, errors.New("cabin service unavailable")
+	}
+	cabin, err := svc.Cabin(cabinID)
+	if err != nil {
+		return models.Cabin{}, err
+	}
+	if cabin == nil {
+		return models.Cabin{}, errors.New("cabin not found")
+	}
+	return *cabin, nil
 }

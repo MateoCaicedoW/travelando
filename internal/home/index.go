@@ -9,6 +9,7 @@ import (
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -18,6 +19,20 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 	set := services.ServiceSetFromCtx(r.Context())
 	data := searchPageData(r, set.Availability)
+	if set.Cabins != nil {
+		featuredCabin, err := set.Cabins.FeaturedCabin()
+		if err != nil {
+			slog.Error("loading featured cabin for home page", "error", err)
+		} else {
+			data.FeaturedCabin = featuredCabin
+		}
+		if !data.DidSearch {
+			data.SampleCabins, err = set.Cabins.RandomPublicCabins()
+			if err != nil {
+				slog.Error("loading random cabins for home page", "error", err)
+			}
+		}
+	}
 	if len(data.Cabins) > 0 {
 		if set.Deposits == nil {
 			data.Error = "deposit service unavailable"
@@ -34,7 +49,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if helpers.IsHTMX(r) && r.Header.Get("HX-History-Restore-Request") != "true" {
+	if hxhttp.IsRequest(r.Header) && !hxhttp.IsHistoryRestoreRequest(r.Header) {
 		if err := IndexEl(data).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

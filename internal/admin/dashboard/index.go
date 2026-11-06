@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	"travelando/internal/system"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +27,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderDashboard(w http.ResponseWriter, r *http.Request, data dashboardData, commissionState *commissionFormState, depositState *depositFormState, status int) {
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		w.WriteHeader(status)
 		if err := dashboardEl(data.Inquiries, data.CommissionBP, data.DepositCOP, commissionState, depositState, requestedCabinPage(r)).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)

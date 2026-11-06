@@ -30,10 +30,10 @@ func CabinCard(cabin models.Cabin, options CabinCardOptions) Node {
 	}
 	return Article(Class("group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:shadow-md"),
 		cabinPhotoCarousel(cabin.Name, cabin.Photos, photoAspect),
-		Div(Class("flex flex-1 flex-col p-5 sm:p-6"),
+		Div(Class("flex flex-1 flex-col p-4 sm:p-5"),
 			Div(Class("flex items-start justify-between gap-3"),
 				Div(Class("min-w-0"),
-					P(Class("truncate text-xs font-extrabold uppercase tracking-wider text-brand-dark"), Text(cabin.Location)),
+					P(Class("truncate text-label font-extrabold uppercase tracking-wider text-brand-dark"), Text(cabin.Location)),
 					H2(Class("mt-1 truncate text-xl font-extrabold text-ink"), Text(cabin.Name)),
 				),
 				If(options.Badge != nil, Div(Class("shrink-0"), options.Badge)),
@@ -73,6 +73,11 @@ func CabinPrices(cabin models.Cabin) Node {
 
 func CabinPhotoCarousel(name string, photos []models.CabinPhoto) Node {
 	return cabinPhotoCarousel(name, photos, "aspect-[4/3]")
+}
+
+// CabinPhotoCarouselCover fills the parent column height on desktop (keeps aspect on mobile).
+func CabinPhotoCarouselCover(name string, photos []models.CabinPhoto) Node {
+	return cabinPhotoCarousel(name, photos, "aspect-[4/3] lg:aspect-auto lg:h-full")
 }
 
 func cabinPhotoCarousel(name string, photos []models.CabinPhoto, aspect string) Node {

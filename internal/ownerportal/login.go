@@ -11,6 +11,8 @@ import (
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
 	"go.leapkit.dev/core/server/session"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	"travelando/internal/system"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
@@ -101,7 +103,7 @@ func loginPIN(values []string) error {
 }
 
 func renderLoginPage(w http.ResponseWriter, r *http.Request, state *loginState, status int) {
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if status != http.StatusOK && status != http.StatusUnprocessableEntity {
 			status = http.StatusUnprocessableEntity
 		}
@@ -125,10 +127,10 @@ func ownerLoginEl(state *loginState) Node {
 		cedulaError = state.Errors.ErrorStringFor("cedula")
 		pinError = state.Errors.ErrorStringFor("pin")
 	}
-	return Div(ID("owner-login-form"), Class("mx-auto w-full max-w-md px-5 py-12 sm:px-8"),
+	return Div(ID("owner-login-form"), Class("mx-auto w-full max-w-md px-5 py-8 sm:px-8"),
 		Div(Class("rounded-2xl border border-line bg-white p-6 sm:p-8"),
 			components.PageHeading("Acceso de dueños", "Ingresa con tu cédula y PIN para administrar tus cabañas."),
-			Form(Method("post"), Action("/owner/login"), Attr("hx-post", "/owner/login"), Attr("hx-target", "#owner-login-form"), Attr("hx-swap", "outerHTML"), Class("mt-6 space-y-4"),
+			Form(Method("post"), Action("/owner/login"), hx.Post("/owner/login"), hx.Target("#owner-login-form"), hx.Swap("outerHTML"), Class("mt-4 space-y-4"),
 				components.TextFieldWithError("owner-cedula", "cedula", "Cédula", cedula, "Número de cédula", "text", true, cedulaError),
 				Div(Class("min-w-0"),
 					components.FieldLabel("owner-pin", "PIN de seis dígitos"),

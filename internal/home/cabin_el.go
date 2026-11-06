@@ -8,6 +8,7 @@ import (
 	"travelando/internal/system/models"
 
 	"go.leapkit.dev/core/form/validate"
+	hx "maragu.dev/gomponents-htmx"
 
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
@@ -66,7 +67,7 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 				components.CabinPhotoCarousel(cabin.Name, cabin.Photos),
 				Div(Class("mt-7 flex flex-wrap items-center justify-between gap-3"),
 					Div(
-						P(Class("text-xs font-extrabold uppercase tracking-[0.17em] text-brand-dark"), Text(cabin.Location)),
+						P(Class("text-label font-extrabold uppercase tracking-[0.08em] text-brand-dark"), Text(cabin.Location)),
 						H1(Class("mt-2 text-3xl font-black tracking-tight text-ink sm:text-4xl"), Text(cabin.Name)),
 					),
 					Span(Class("rounded-full bg-cream px-4 py-2 text-sm font-bold text-brand-dark"), Textf("%d personas incluidas", cabin.IncludedGuests)),
@@ -106,14 +107,14 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 				Attr("data-price-estimate-deposit-cop-value", strconv.FormatInt(data.DepositCOP, 10)),
 				Attr("data-price-estimate-day-price-value", strconv.FormatInt(cabin.DayPrice, 10)),
 				Attr("data-price-estimate-night-price-value", strconv.FormatInt(cabin.NightPrice, 10)),
-				P(Class("text-xs font-extrabold uppercase tracking-[0.16em] text-brand-dark"), Text("Consulta disponibilidad")),
+				P(Class("text-label font-extrabold uppercase tracking-[0.08em] text-brand-dark"), Text("Consulta disponibilidad")),
 				H2(Class("mt-2 text-2xl font-extrabold text-ink"), Text("Habla con "+cabin.OwnerName)),
 				If(!cabin.AcceptsDayUse && !cabin.AcceptsOvernight,
 					P(Class("mt-4 rounded-xl border border-line bg-cream p-4 text-sm leading-6 text-muted"), Text("Esta cabaña no está aceptando pasadías ni estadías por ahora.")),
 				),
 				If(cabin.AcceptsDayUse || cabin.AcceptsOvernight, Group{
 					P(Class("mt-2 text-sm leading-6 text-muted"), Text("Enviaremos tu solicitud y abriremos WhatsApp con los detalles listos para enviar.")),
-					Form(Method("post"), Action("/requests/"+strconv.FormatInt(cabin.ID, 10)), Attr("hx-post", "/requests/"+strconv.FormatInt(cabin.ID, 10)), Attr("hx-target", "#cabin-detail"), Attr("hx-swap", "outerHTML"), Class("mt-6 space-y-4 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-0"),
+					Form(Method("post"), Action("/requests/"+strconv.FormatInt(cabin.ID, 10)), hx.Post("/requests/"+strconv.FormatInt(cabin.ID, 10)), hx.Target("#cabin-detail"), hx.Swap("outerHTML"), Class("mt-6 space-y-4 pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-0"),
 						Div(Class("space-y-2"),
 							components.FieldLabel("request_stay_type", "Tipo de plan"),
 							Select(ID("request_stay_type"), Name("stay_type"), Required(), If(requestErrors.Has("stay_type"), Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "request_stay_type-error")}), Class("w-full bg-white px-4 py-3 text-base text-ink focus:ring-2 focus:ring-brand/20"),
@@ -166,7 +167,7 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 
 func DetailItem(title, value, detail string) Node {
 	return Div(Class("rounded-xl border border-line bg-cream p-4"),
-		P(Class("text-xs font-extrabold uppercase tracking-wider text-muted"), Text(title)),
+		P(Class("text-label font-extrabold uppercase tracking-wider text-muted"), Text(title)),
 		P(Class("mt-1 text-lg font-extrabold text-ink"), Text(value)),
 		P(Class("mt-1 text-sm text-muted"), Text(detail)),
 	)

@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	"travelando/internal/system/components"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Edit(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ func renderCabinEditContent(w http.ResponseWriter, r *http.Request, data cabinEd
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := editModalEl(data.Cabin, data.Blocks, data.Bookings, data.Owners, data.AmenityTypes, state).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

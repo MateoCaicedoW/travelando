@@ -14,22 +14,22 @@ colors:
 typography:
   display:
     fontFamily: '"Barlow Semi Condensed", sans-serif'
-    fontSize: "3.75rem"
+    fontSize: "1.875rem"
     fontWeight: 900
     lineHeight: 1.06
     letterSpacing: "-0.04em"
     fontStyle: italic
   headline:
     fontFamily: '"Barlow Semi Condensed", sans-serif'
-    fontSize: "2.25rem"
+    fontSize: "1.625rem"
     fontWeight: 800
-    lineHeight: 1.2
+    lineHeight: 1.15
     fontStyle: italic
   title:
     fontFamily: '"Barlow Semi Condensed", sans-serif'
-    fontSize: "1.25rem"
+    fontSize: "1.125rem"
     fontWeight: 800
-    lineHeight: 1.4
+    lineHeight: 1.35
     fontStyle: italic
   body:
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
@@ -38,10 +38,10 @@ typography:
     lineHeight: 1.5
   label:
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'
-    fontSize: "0.75rem"
+    fontSize: "0.6875rem"
     fontWeight: 800
-    lineHeight: 1.5
-    letterSpacing: "0.16em"
+    lineHeight: 1.4
+    letterSpacing: "0.08em"
 rounded:
   lg: "8px"
   xl: "12px"
@@ -61,25 +61,26 @@ components:
     backgroundColor: "{colors.burnt-trail}"
     textColor: "{colors.white}"
     rounded: "{rounded.lg}"
-    height: "48px"
-    padding: "12px 20px"
+    height: "36px"
+    padding: "6px 12px"
   button-strong:
     backgroundColor: "{colors.burnt-trail}"
     textColor: "{colors.white}"
     rounded: "{rounded.lg}"
-    height: "48px"
-    padding: "12px 20px"
+    height: "36px"
+    padding: "6px 12px"
   button-secondary:
     backgroundColor: "{colors.white}"
     textColor: "{colors.warm-graphite}"
     rounded: "{rounded.lg}"
-    height: "44px"
-    padding: "8px 16px"
+    height: "36px"
+    padding: "6px 12px"
   input:
     backgroundColor: "{colors.white}"
     textColor: "{colors.warm-graphite}"
     rounded: "{rounded.xl}"
-    padding: "12px 16px"
+    height: "40px"
+    padding: "6px 10px"
   card:
     backgroundColor: "{colors.white}"
     rounded: "{rounded.2xl}"
@@ -137,15 +138,17 @@ The palette follows the supplied identity: bright orange `#ff5d06`, forest green
 **Character:** Bold, oblique condensed headings echo the supplied Tablet Gothic specimen. Body text stays neutral and comfortably spaced; small uppercase labels add hierarchy without becoming ornamental.
 
 ### Hierarchy
-- **Display** (black weight, responsive 36–60px, tight 1.06 line-height): Homepage hero only.
-- **Headline** (extra-bold, 30–36px): Page and section headings.
-- **Title** (extra-bold, 18–24px): Card names and section titles.
-- **Body** (regular, 16px, 1.5 line-height): Descriptions and form content; prose uses a readable measure.
-- **Label** (extra-bold, 12px, tracked and often uppercase): Field labels, metadata, and section eyebrows.
+- **Display** (black weight, fluid 23–30px, tight 1.06 line-height): Homepage hero only.
+- **Headline** (extra-bold, fluid 19–26px): Page and section headings.
+- **Title** (extra-bold, fluid 15–18px): Card names and section titles.
+- **Body** (regular, fluid 15–16px through 768px, 1.5 line-height; form controls stay 16px): Descriptions and form content; prose uses a readable measure.
+- **Control labels** (bold, 14px): Compact action buttons.
+- **Field labels** (bold, 13px).
+- **Label** (extra-bold, 11px, tracked 0.08em and often uppercase): Metadata, table headers, and section eyebrows.
 
 ## Layout
 
-Pages center within a wide 80rem content container. Mobile gutters are 1.25rem and widen to 2rem from the small breakpoint (640px). The catalog hero and cabin detail switch to split layouts at large screens (1024px); cabin results expand from one column to two at medium screens (768px), then three at extra-large screens (1280px). Admin forms and cards use the same spacing rhythm, while wide tables scroll horizontally rather than compressing their columns. Common section padding grows from 3rem to 4rem at small screens.
+Pages center within a wide 80rem content container. Home and the public header use a 0.5rem mobile gutter; other public-page content uses 1.25rem, widening to 2rem from the small breakpoint (640px). Admin and owner view containers and mobile headers use the same 0.5rem gutter, widening at tablet widths. The catalog hero and cabin detail switch to split layouts at large screens (1024px); cabin results expand from one column to two at medium screens (768px), then three at extra-large screens (1280px). Admin forms and cards use the same spacing rhythm, while wide tables scroll horizontally rather than compressing their columns. Common section padding grows from 3rem to 4rem at small screens.
 
 ## Elevation & Depth
 
@@ -161,7 +164,7 @@ Cards use generously rounded corners; buttons and fields use smaller rounded cor
 
 ### Buttons
 - **Character:** Direct and sturdy, with bold labels and clear contrast.
-- **Shape:** Gently rounded; primary buttons use the `lg` radius token.
+- **Shape:** Gently rounded; action buttons use a shared 36px minimum height and primary buttons use the `lg` radius token. On mobile, text buttons use 32px minimum height and 4px × 8px padding. Icon-only controls retain their dedicated hit areas.
 - **Primary:** Burnt Trail fill with white text for high-emphasis actions; see `button-primary` token.
 - **Accent:** Trail Orange leads the brand mark, focus, and discovery details.
 - **Hover / Focus:** The fill darkens on hover. Keyboard focus gets a visible, offset outline in the deep orange.
@@ -176,10 +179,10 @@ Cards use generously rounded corners; buttons and fields use smaller rounded cor
 - **Background:** White, with cream reserved for highlighted bands and details.
 - **Shadow Strategy:** Border-first; hover lift is limited to interactive cabin cards.
 - **Border:** Thin sandstone line.
-- **Internal Padding:** Commonly 1.25rem, increasing to 1.5rem on wider layouts.
+- **Internal Padding:** Commonly 1rem, increasing to 1.25rem on wider layouts.
 
 ### Inputs / Fields
-- **Style:** White fill, sandstone stroke, softly rounded corners, and consistent horizontal padding.
+- **Style:** White fill, sandstone stroke, softly rounded corners, 40px desktop / 36px mobile height, 16px text, and 6px × 10px desktop / 4px × 8px mobile padding.
 - **Focus:** Orange border and subtle orange ring; keyboard focus remains visible.
 - **Error / Disabled:** Errors use red text and pale red surfaces. No distinct disabled treatment is established.
 

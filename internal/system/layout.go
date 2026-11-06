@@ -49,24 +49,34 @@ func (props Layout) New(request ...*http.Request) Node {
 		toast = components.FlashToast(flash.Message, flash.Level)
 		path = request[0].URL.Path
 	}
-	header, footer := components.SiteHeader(), components.SiteFooter()
+	header, footer := components.SiteHeader(path), components.SiteFooter()
 	switch props.Portal {
 	case PortalAdmin:
 		header, footer = components.AdminHeader(path), nil
 	case PortalOwner:
-		header, footer = components.OwnerHeader(path), nil
+		header, footer = nil, nil
 	case PortalBare:
 		header, footer = nil, nil
 	}
 	var page Node
 	if props.Portal == PortalAdmin {
-		page = Div(Attr("data-controller", "admin-navigation"), Class("flex min-h-screen w-full"),
-			components.AdminNavigationBackdrop(),
+		page = Div(Attr("data-controller", "portal-navigation"), Class("flex min-h-screen w-full"),
+			components.PortalNavigationBackdrop(),
 			components.AdminHeader(path),
-			Div(Attr("data-admin-navigation-target", "content"), Class("flex min-w-0 flex-1 flex-col"),
+			Div(Attr("data-portal-navigation-target", "content"), Class("flex min-w-0 flex-1 flex-col"),
 				components.AdminMobileBar(),
 				Div(ID("global-flash-container"), toast),
-				Main(Class("w-full flex-1"), props.Yield),
+				Main(Class("portal-main w-full flex-1"), props.Yield),
+			),
+		)
+	} else if props.Portal == PortalOwner {
+		page = Div(Attr("data-controller", "portal-navigation"), Class("flex min-h-screen w-full"),
+			components.PortalNavigationBackdrop(),
+			components.OwnerNavigation(path),
+			Div(Attr("data-portal-navigation-target", "content"), Class("flex min-w-0 flex-1 flex-col"),
+				components.OwnerMobileBar(),
+				Div(ID("global-flash-container"), toast),
+				Main(Class("portal-main w-full flex-1"), props.Yield),
 			),
 		)
 	} else {

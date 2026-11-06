@@ -8,6 +8,7 @@ import (
 	"travelando/internal/system/models"
 
 	lucide "github.com/eduardolat/gomponents-lucide"
+	hx "maragu.dev/gomponents-htmx"
 
 	"go.leapkit.dev/core/form/validate"
 
@@ -71,16 +72,16 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 			components.PageHeading(title, "Datos y tarifas de esta cabaña. Precios en pesos colombianos (COP)."),
 			Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 		),
-		Form(ID("cabin-data"), Method("post"), Action(formAction), Attr("hx-post", formAction), Attr("hx-target", formTarget), Attr("hx-swap", "outerHTML"),
-			Div(Class("space-y-7"),
-				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
+		Form(ID("cabin-data"), Method("post"), Action(formAction), hx.Post(formAction), hx.Target(formTarget), hx.Swap("outerHTML"),
+			Div(Class("space-y-5"),
+				If(!ownerMode, Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-5"),
 					Div(Class("sm:col-span-2"), H2(Class("text-base font-extrabold text-ink"), Text("Dueño de la cabaña"))),
 					Div(Class("min-w-0 sm:col-span-2"),
 						components.SearchableSelect("owner_id", "owner_id", "Dueño", "Busca un dueño", ownerIDValue, ownerOptions, false, fieldErrors.ErrorStringFor("owner_id")),
 						P(Class("mt-1 text-xs text-muted"), Text("El nombre y WhatsApp de contacto vienen del dueño.")),
 					),
 				)),
-				Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-6"),
+				Div(Class("grid gap-x-6 gap-y-4 rounded-2xl border border-line p-4 sm:grid-cols-2 sm:p-5"),
 					Div(Class("sm:col-span-2"), H2(Class("text-base font-extrabold text-ink"), Text("Datos de la cabaña"))),
 					components.TextFieldWithError("name", "name", "Nombre de la cabaña", fieldValue("name", cabin.Name), "Ej. Refugio del río", "text", true, fieldErrors.ErrorStringFor("name")),
 					components.NumberFieldWithError("included_guests", "included_guests", "Personas incluidas en el precio", fieldValue("included_guests", strconv.Itoa(cabin.IncludedGuests)), "1", "", fieldErrors.ErrorStringFor("included_guests")),
@@ -97,14 +98,14 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 					)),
 				),
 				amenityFieldsEl(cabin, amenityTypes, values, fieldErrors, ownerMode, false, nil),
-				Div(Class("rounded-2xl border border-line p-4 sm:p-6"),
+				Div(Class("rounded-2xl border border-line p-4 sm:p-5"),
 					H2(Class("text-base font-extrabold text-ink"), Text("Tarifas y horarios")),
 					P(Class("mt-1 text-sm text-muted"), Text("El cargo por huésped adicional se cobra una sola vez por reserva.")),
-					Div(Class("mt-5 max-w-sm"),
+					Div(Class("mt-4 max-w-sm"),
 						components.NumberFieldWithError("cleaning_hours", "cleaning_hours", "Horas de aseo después de cada reserva", fieldValue("cleaning_hours", strconv.Itoa(cabin.CleaningHours)), "0", "24", fieldErrors.ErrorStringFor("cleaning_hours")),
 						P(Class("mt-1 text-xs text-muted"), Text("La cabaña vuelve a estar lista al terminar este tiempo.")),
 					),
-					Div(Class("mt-5 grid items-start gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,2fr)]"),
+					Div(Class("mt-4 grid items-start gap-5 lg:grid-cols-[minmax(15rem,1fr)_minmax(0,2fr)]"),
 						components.NumberFieldWithError("extra_guest_price", "extra_guest_price", "Cargo por huésped adicional (COP)", fieldValue("extra_guest_price", strconv.FormatInt(cabin.ExtraGuestPrice, 10)), "0", "1000000000000", fieldErrors.ErrorStringFor("extra_guest_price")),
 						Div(Class("space-y-1"),
 							P(Class("text-sm font-bold text-ink"), Text("Modalidades que acepta esta cabaña")),
@@ -121,7 +122,7 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 							P(Class("text-xs text-muted"), Text("Si desmarcas ambas, la cabaña no aparecerá en búsquedas ni recibirá solicitudes nuevas.")),
 						),
 					),
-					Div(Class("mt-5 grid gap-4 lg:grid-cols-2"),
+					Div(Class("mt-4 grid gap-4 lg:grid-cols-2"),
 						Div(Class("rounded-xl bg-cream/50 p-4 sm:p-5"),
 							H3(Class("mb-4 text-sm font-extrabold text-ink"), Text("Pasadía")),
 							Div(Class("grid gap-x-4 gap-y-4 sm:grid-cols-2"),
@@ -141,9 +142,9 @@ func cabinSharedFormEl(cabin models.Cabin, blocks []models.CabinBlock, bookings 
 					),
 				),
 			),
-			Div(Class("mt-6 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:flex-wrap"),
-				Button(Type("submit"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white transition hover:brightness-90 sm:w-auto"), lucide.Save(Class("size-4"), Attr("aria-hidden", "true")), Text("Guardar cabaña")),
-				Button(Type("button"), Attr("data-action", "click->modal#close"), Class("inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2 font-bold text-muted hover:text-ink sm:w-auto"), Text("Cancelar")),
+			components.FormActions(
+				Button(Type("submit"), Class(components.FormPrimaryClass), lucide.Save(Class("size-4"), Attr("aria-hidden", "true")), Text("Guardar cabaña")),
+				Button(Type("button"), Attr("data-action", "click->modal#close"), Class(components.FormSecondaryClass), Text("Cancelar")),
 			),
 		),
 	)
@@ -161,7 +162,7 @@ func amenityFieldsEl(cabin models.Cabin, types []models.AmenityType, values url.
 	if createState != nil {
 		newName, newValueType, message, createErrors = createState.Type.Name, createState.Type.ValueType, createState.Message, createState.Errors
 	}
-	return Div(ID("cabin-amenity-fields"), If(oob, Attr("hx-swap-oob", "outerHTML")), Class("rounded-2xl border border-line p-4 sm:p-6"),
+	return Div(ID("cabin-amenity-fields"), If(oob, hx.SwapOOB("outerHTML")), Class("rounded-2xl border border-line p-4 sm:p-5"),
 		Div(Class("flex flex-wrap items-start justify-between gap-3"),
 			Div(H2(Class("text-base font-extrabold text-ink"), Text("Amenidades")),
 				P(Class("mt-1 text-sm text-muted"), Text("Indica cuáles tiene esta cabaña y sus cantidades.")),
@@ -185,7 +186,7 @@ func amenityFieldsEl(cabin models.Cabin, types []models.AmenityType, values url.
 				components.NumberFieldWithError(key, key, amenityType.Name, value, "0", "", fieldErrors.ErrorStringFor(key)),
 			)
 		}))),
-		Div(Class("mt-5 grid gap-3 border-t border-line pt-4 sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-end"),
+		Div(Class("mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-end"),
 			Div(Class("min-w-0"),
 				components.FieldLabel("new_amenity_name", "Nombre"),
 				Input(ID("new_amenity_name"), Name("new_amenity_name"), Type("text"), Value(newName), MaxLength("80"), Placeholder("Ej. Piscina"), If(createErrors.Has("new_amenity_name"), Attr("aria-invalid", "true")), Class("mt-1 h-10 w-full bg-white px-3 text-sm text-ink")),
@@ -199,7 +200,7 @@ func amenityFieldsEl(cabin models.Cabin, types []models.AmenityType, values url.
 				),
 				components.FieldError("new_amenity_value_type", createErrors.ErrorStringFor("new_amenity_value_type")),
 			),
-			Button(Type("button"), Attr("hx-post", createURL), Attr("hx-target", "#cabin-amenity-fields"), Attr("hx-swap", "outerHTML"), Attr("hx-include", "#cabin-data"), Class("inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-dark px-3 text-sm font-bold text-white hover:brightness-90"), Text("Agregar")),
+			Button(Type("button"), hx.Post(createURL), hx.Target("#cabin-amenity-fields"), hx.Swap("outerHTML"), hx.Include("#cabin-data"), Class("inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-dark px-3 text-sm font-bold text-white hover:brightness-90"), Text("Agregar")),
 			If(message != "", P(Attr("role", "status"), Class("text-sm font-semibold text-forest sm:col-span-3"), Text(message))),
 		),
 	)

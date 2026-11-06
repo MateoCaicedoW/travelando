@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"strconv"
 
+	lucide "github.com/eduardolat/gomponents-lucide"
+	hx "maragu.dev/gomponents-htmx"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
@@ -46,12 +48,12 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool, retur
 		submitLabel = "Guardar solicitud"
 	}
 	heading := Div(Class("flex items-start justify-between gap-4"), components.PageHeading(headingTitle, inquiry.CabinName+" · "+helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)),
-		Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), Text("×")),
+		Button(Type("button"), Attr("data-action", "click->modal#close"), Attr("aria-label", "Cerrar"), Class("inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-dark"), lucide.X(Class("size-5"), Attr("aria-hidden", "true"))),
 	)
 	return Div(ID("reservation-form-content"), Class("w-full px-4 py-5 sm:px-6 sm:py-6"),
 		heading,
 		noticeEl(state),
-		Form(Method("post"), Action(action), Attr("hx-post", action), Attr("hx-target", "#reservation-form-content"), Attr("hx-swap", "outerHTML"), Class("grid gap-4 sm:grid-cols-2"),
+		Form(Method("post"), Action(action), hx.Post(action), hx.Target("#reservation-form-content"), hx.Swap("outerHTML"), Class("grid gap-4 sm:grid-cols-2"),
 			If(returnTo == "reservations", Input(Type("hidden"), Name("return_to"), Value(returnTo))),
 			components.TextFieldWithError("guest-name", "guest_name", "Nombre del huésped", values.Get("guest_name"), "", "text", true, fieldError(state, "guest_name")),
 			components.TextFieldWithError("guest-phone", "guest_phone", "Teléfono", values.Get("guest_phone"), "", "tel", true, fieldError(state, "guest_phone")),
@@ -81,7 +83,7 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool, retur
 				P(Class("mt-2 text-sm font-bold text-ink"), Text("Comisión guardada: "+helpers.FormatCommissionRate(inquiry.CommissionBP)+"% · $"+helpers.FormatCOP(inquiry.Commission)+" COP")),
 				P(Class("mt-1 text-sm font-bold "+balanceClass), Text(balanceLabel+": $"+helpers.FormatCOP(abs(inquiry.CommissionBalance))+" COP")),
 				If(len(inquiry.CommissionAdjustments) > 0, Div(Class("mt-3 border-t border-line pt-3"),
-					P(Class("text-xs font-extrabold uppercase tracking-wide text-muted"), Text("Ajustes de comisión")),
+					P(Class("text-label font-extrabold uppercase tracking-wide text-muted"), Text("Ajustes de comisión")),
 					Map(inquiry.CommissionAdjustments, func(adjustment models.CommissionAdjustment) Node {
 						actor := "Travelando"
 						if adjustment.ActorRole == "owner" {
@@ -95,10 +97,10 @@ func reservationForm(inquiry models.Inquiry, state *formState, owner bool, retur
 					}),
 				)),
 			)),
-			Div(Class("flex flex-wrap items-center gap-3 sm:col-span-2"),
-				Button(Type("submit"), Class("inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-dark px-5 py-2.5 font-extrabold text-white hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), Text(submitLabel)),
-				Button(Type("button"), Attr("data-action", "click->modal#close"), Class("font-bold text-brand-dark hover:underline"), Text("Cancelar")),
-			),
+			Div(Class("sm:col-span-2"), components.FormActions(
+				Button(Type("submit"), Class(components.FormPrimaryClass), Text(submitLabel)),
+				Button(Type("button"), Attr("data-action", "click->modal#close"), Class(components.FormSecondaryClass), Text("Cancelar")),
+			)),
 		),
 	)
 }

@@ -7,6 +7,8 @@ import (
 
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
+
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Update(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +62,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No se pudo actualizar el acceso", http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		renderOwnersPage(w, r, svc, 0, nil, http.StatusOK, helpers.FlashSuccess, "Datos del dueño actualizados.")
 		return
 	}

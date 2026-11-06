@@ -1,14 +1,14 @@
 package helpers
 
-import "net/http"
+import (
+	"net/http"
 
-func IsHTMX(r *http.Request) bool {
-	return r.Header.Get("HX-Request") == "true"
-}
+	hxhttp "maragu.dev/gomponents-htmx/http"
+)
 
 func Redirect(w http.ResponseWriter, r *http.Request, target string) {
-	if IsHTMX(r) {
-		w.Header().Set("HX-Redirect", target)
+	if hxhttp.IsRequest(r.Header) {
+		hxhttp.SetRedirect(w.Header(), target)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}

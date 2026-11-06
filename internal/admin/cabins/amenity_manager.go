@@ -14,6 +14,7 @@ import (
 	"go.leapkit.dev/core/form"
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func CreateCabinAmenityTypeHandler(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +83,7 @@ func cabinAmenityScope(ownerID int64, ownerMode bool) int64 {
 }
 
 func respondCabinAmenityFields(w http.ResponseWriter, r *http.Request, ownerID int64, ownerMode bool, state *components.AmenityManagerState) {
-	if !helpers.IsHTMX(r) {
+	if !hxhttp.IsRequest(r.Header) {
 		level := helpers.FlashSuccess
 		if state.Errors.HasAny() {
 			level = helpers.FlashError

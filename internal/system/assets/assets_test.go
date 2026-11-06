@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"travelando/internal/system/models"
@@ -39,5 +40,39 @@ func TestBrandIconsAreServedAsPNG(t *testing.T) {
 				t.Fatalf("icon response = %d %q, want 200 image/png", response.Code, response.Header().Get("Content-Type"))
 			}
 		})
+	}
+}
+
+func TestComboboxDropdownEscapesScrollableModal(t *testing.T) {
+	css, err := Files.ReadFile("css/tailwind.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		".modal-content:has(.travelando-combobox [data-popover][aria-hidden=\"false\"]) {\n  overflow-y: visible;\n}",
+		"#modal:has(.travelando-combobox [data-popover][aria-hidden=\"false\"]) {\n  overflow-x: clip;\n}",
+		".travelando-combobox [data-popover][aria-hidden=\"true\"] {\n  display: none;",
+	} {
+		if !strings.Contains(string(css), want) {
+			t.Errorf("combobox overflow styles missing %q", want)
+		}
+	}
+}
+
+func TestActionDropdownStylesDoNotAffectOtherPopovers(t *testing.T) {
+	css, err := Files.ReadFile("css/tailwind.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(css), `@import "basecoat-css/components/popover.css";`) {
+		t.Fatal("Basecoat popover styles must stay scoped so they do not affect comboboxes")
+	}
+	for _, want := range []string{
+		".dropdown-menu > [data-popover][aria-hidden=\"true\"] {\n  display: none;\n}",
+		".dropdown-menu > [data-popover][aria-hidden=\"false\"] {\n  display: block;\n}",
+	} {
+		if !strings.Contains(string(css), want) {
+			t.Errorf("scoped action dropdown styles missing %q", want)
+		}
 	}
 }

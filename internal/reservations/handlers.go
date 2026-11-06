@@ -14,6 +14,8 @@ import (
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	. "maragu.dev/gomponents/html"
 )
 
@@ -149,10 +151,10 @@ func update(w http.ResponseWriter, r *http.Request, ownerID int64) {
 		helpers.Redirect(w, r, returnTo)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		response := Group{
-			Div(ID("modal"), Attr("hx-swap-oob", "delete")),
-			Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast(message, helpers.FlashSuccess)),
+			Div(ID("modal"), hx.SwapOOB("delete")),
+			Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast(message, helpers.FlashSuccess)),
 		}
 		if err := response.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
@@ -186,7 +188,7 @@ func render(w http.ResponseWriter, r *http.Request, inquiry models.Inquiry, owne
 	if returnTo != "reservations" {
 		returnTo = ""
 	}
-	if helpers.IsHTMX(r) && state != nil {
+	if hxhttp.IsRequest(r.Header) && state != nil {
 		if status != http.StatusOK {
 			w.WriteHeader(status)
 		}

@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"go.leapkit.dev/core/server"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	"travelando/internal/system/components"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
@@ -45,7 +47,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if !helpers.IsHTMX(r) {
+	if !hxhttp.IsRequest(r.Header) {
 		if err := helpers.SetFlash(r, helpers.FlashSuccess, "Saldo de comisión marcado como pagado."); err != nil {
 			http.Error(w, "Sesión no disponible", http.StatusInternalServerError)
 			return
@@ -56,7 +58,7 @@ func MarkCommissionPaid(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	response := Group{
 		dashboardEl(data.Inquiries, data.CommissionBP, data.DepositCOP, nil, nil, requestedCabinPage(r)),
-		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Saldo de comisión marcado como pagado.", helpers.FlashSuccess)),
+		Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast("Saldo de comisión marcado como pagado.", helpers.FlashSuccess)),
 	}
 	if err := response.Render(w); err != nil {
 		server.Error(w, err, http.StatusInternalServerError)

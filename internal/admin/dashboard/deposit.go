@@ -15,6 +15,8 @@ import (
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	. "maragu.dev/gomponents/html"
 )
 
@@ -38,7 +40,7 @@ func UpdateDeposit(w http.ResponseWriter, r *http.Request) {
 	))
 	if fieldErrors.HasAny() {
 		state := &depositFormState{Value: r.FormValue("deposit"), Error: fieldErrors.ErrorStringFor("deposit")}
-		if helpers.IsHTMX(r) {
+		if hxhttp.IsRequest(r.Header) {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			if err := depositFormEl(state.Value, state.Error).Render(w); err != nil {
 				server.Error(w, err, http.StatusInternalServerError)
@@ -63,7 +65,7 @@ func UpdateDeposit(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := depositSuccessEl(amount).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
@@ -99,19 +101,21 @@ func depositFormEl(value, message string) Node {
 	if message != "" {
 		inputClass += " border-red-300 focus:ring-red-200"
 	}
-	return Form(ID("deposit-form"), Method("post"), Action("/admin/deposit"), Attr("hx-post", "/admin/deposit"), Attr("hx-target", "#deposit-form"), Attr("hx-swap", "outerHTML"), Class("mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"),
+	return Form(ID("deposit-form"), Method("post"), Action("/admin/deposit"), hx.Post("/admin/deposit"), hx.Target("#deposit-form"), hx.Swap("outerHTML"), Class("mt-4"),
 		Div(Class("min-w-0"),
 			components.FieldLabel("deposit", "Monto fijo (COP)"),
 			Input(ID("deposit"), Name("deposit"), Type("number"), Min("0"), Max(strconv.FormatInt(services.MaxAmountCOP, 10)), Step("1"), Value(value), Required(), If(message != "", Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "deposit-error")}), Class("min-h-12 "+inputClass)),
 			components.FieldError("deposit", message),
 		),
-		Button(Type("submit"), Class("min-h-12 rounded-lg bg-brand-dark px-5 py-2 font-extrabold text-white transition hover:brightness-90"), Text("Guardar depósito")),
+		components.FormActions(
+			Button(Type("submit"), Class(components.FormPrimaryClass), Text("Guardar depósito")),
+		),
 	)
 }
 
 func depositSuccessEl(amount int64) Node {
 	return Group{
 		depositFormEl(strconv.FormatInt(amount, 10), ""),
-		Div(ID("global-flash-container"), Attr("hx-swap-oob", "true"), components.FlashToast("Depósito global actualizado.", helpers.FlashSuccess)),
+		Div(ID("global-flash-container"), hx.SwapOOB("true"), components.FlashToast("Depósito global actualizado.", helpers.FlashSuccess)),
 	}
 }

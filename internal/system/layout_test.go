@@ -25,7 +25,7 @@ func renderLayout(t *testing.T, portal string) string {
 
 func TestAdminLayoutUsesAdminNavigationWithoutExploreChrome(t *testing.T) {
 	html := renderLayout(t, PortalAdmin)
-	for _, want := range []string{"Inicio", "Reservas", "Calendario", "Cabañas", "Amenidades", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`, `aria-label="Abrir navegación"`, `aria-controls="admin-sidebar"`, `data-controller="admin-navigation"`, `id="admin-sidebar"`, "sticky top-0 z-30"} {
+	for _, want := range []string{"Inicio", "Reservas", "Calendario", "Cabañas", "Amenidades", "Dueños", `aria-label="Cerrar sesión"`, `action="/admin/logout"`, `aria-label="Abrir navegación"`, `aria-controls="portal-sidebar"`, `data-controller="portal-navigation"`, `id="portal-sidebar"`, `class="portal-main w-full flex-1"`, "sticky top-0 z-30"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("admin layout missing %q", want)
 		}
@@ -35,11 +35,14 @@ func TestAdminLayoutUsesAdminNavigationWithoutExploreChrome(t *testing.T) {
 			t.Errorf("admin layout unexpectedly contains %q", unwanted)
 		}
 	}
+	if strings.Contains(html, "Administración") {
+		t.Fatal("admin sidebar should not repeat its section title")
+	}
 }
 
 func TestOwnerLayoutUsesOwnerNavigationWithoutExploreChrome(t *testing.T) {
 	html := renderLayout(t, PortalOwner)
-	for _, want := range []string{"Calendario", "Reservas", "Mis cabañas", `aria-label="Cerrar sesión"`, `action="/owner/logout"`} {
+	for _, want := range []string{"Calendario", "Reservas", "Mis cabañas", "Amenidades", `aria-label="Navegación de dueño"`, `aria-label="Contraer navegación"`, `aria-label="Abrir navegación"`, "lg:hidden", `click-&gt;portal-navigation#toggleCompact`, `data-portal-navigation-target="linkLabel"`, `href="/owner/profile"`, `aria-label="Cerrar sesión"`, `action="/owner/logout"`, `data-controller="portal-navigation"`, `id="portal-sidebar"`, `class="portal-main w-full flex-1"`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("owner layout missing %q", want)
 		}
@@ -49,8 +52,8 @@ func TestOwnerLayoutUsesOwnerNavigationWithoutExploreChrome(t *testing.T) {
 			t.Errorf("owner layout unexpectedly contains %q", unwanted)
 		}
 	}
-	if strings.Contains(html, `data-controller="admin-navigation"`) || strings.Contains(html, `id="admin-sidebar"`) {
-		t.Fatal("owner layout unexpectedly contains admin sidebar")
+	if strings.Contains(html, "Administración") || strings.Contains(html, "Portal de dueños") || strings.Contains(html, "owner-account-menu") {
+		t.Fatal("owner layout still contains owner header or profile dropdown")
 	}
 }
 
@@ -108,7 +111,7 @@ func TestPortalHeaderMarksCurrentPage(t *testing.T) {
 	if !strings.Contains(html, `href="/admin/reservations" aria-current="page"`) {
 		t.Fatal("reservations navigation does not mark current page")
 	}
-	html = renderNode(t, components.OwnerHeader("/owner/reservations"))
+	html = renderNode(t, components.OwnerNavigation("/owner/reservations"))
 	if !strings.Contains(html, `href="/owner/reservations" aria-current="page"`) {
 		t.Fatal("owner reservations navigation does not mark current page")
 	}

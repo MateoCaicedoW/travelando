@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"maragu.dev/gomponents"
 	"travelando/internal/system/models"
 )
 
@@ -15,5 +16,25 @@ func TestReservationDetailsShowGuestCedula(t *testing.T) {
 	}
 	if !strings.Contains(html.String(), "Cédula") || !strings.Contains(html.String(), "12345678") || !strings.Contains(html.String(), "Términos aceptados") || !strings.Contains(html.String(), "2026-11-05 12:00:00") {
 		t.Fatalf("owner details should show guest identity and terms acceptance: %s", html.String())
+	}
+}
+
+func TestReservationDetailsDoNotShowReportAction(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		view func(models.Inquiry) gomponents.Node
+	}{
+		{name: "admin", view: ReservationDetailsEl},
+		{name: "owner", view: OwnerReservationDetailsEl},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var html strings.Builder
+			if err := test.view(models.Inquiry{ID: 42, Status: models.InquiryReserved}).Render(&html); err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(html.String(), "/report") || strings.Contains(html.String(), "Ver reporte") {
+				t.Fatalf("reservation details expose report action: %s", html.String())
+			}
+		})
 	}
 }

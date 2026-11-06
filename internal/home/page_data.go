@@ -9,6 +9,8 @@ import (
 )
 
 type PageData struct {
+	FeaturedCabin *models.Cabin
+	SampleCabins  []models.Cabin
 	StayType      models.StayType
 	DateFrom      string
 	DateTo        string

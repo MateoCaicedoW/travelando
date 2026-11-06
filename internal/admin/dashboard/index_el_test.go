@@ -8,6 +8,22 @@ import (
 	"travelando/internal/system/services"
 )
 
+func TestDashboardActivityHasMobileCardLabels(t *testing.T) {
+	var html strings.Builder
+	page := dashboardEl([]models.Inquiry{{
+		ID: 9, Status: models.InquiryReserved, GuestName: "Huésped", GuestPhone: "573001234567", CabinName: "Cabaña", OwnerName: "Dueño",
+		DateFrom: "2099-08-10", DateTo: "2099-08-11", Commission: 12500,
+	}}, 0, 0, nil, nil, 1)
+	if err := page.Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"responsive-data-table", `data-label="Huésped"`, `data-label="Cabaña / contacto"`, `data-label="Fechas"`, `data-label="Estado"`, `data-label="Comisión"`, "12.500"} {
+		if !strings.Contains(html.String(), want) {
+			t.Errorf("dashboard activity missing %q", want)
+		}
+	}
+}
+
 func TestInventoryEditOpensCabinModal(t *testing.T) {
 	var html strings.Builder
 	page := services.CabinPageResult{Cabins: []models.Cabin{{ID: 7, Name: "Cabaña"}}}

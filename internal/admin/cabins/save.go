@@ -12,6 +12,7 @@ import (
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.CabinService, *models.Cabin) error) {
@@ -91,7 +92,7 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 	}
 	w.WriteHeader(status)
 	if cabin.ID > 0 {
-		if helpers.IsHTMX(r) {
+		if hxhttp.IsRequest(r.Header) {
 			if err := form.Render(w); err != nil {
 				server.Error(w, err, http.StatusInternalServerError)
 			}
@@ -103,7 +104,7 @@ func renderCabinForm(w http.ResponseWriter, r *http.Request, cabin models.Cabin,
 		}
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := form.Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

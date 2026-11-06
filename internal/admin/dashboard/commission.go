@@ -14,6 +14,7 @@ import (
 	"go.leapkit.dev/core/form"
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 type commissionFormState struct {
@@ -37,7 +38,7 @@ func UpdateCommission(w http.ResponseWriter, r *http.Request) {
 	))
 	if fieldErrors.HasAny() {
 		state := &commissionFormState{Value: r.FormValue("commission"), Error: fieldErrors.ErrorStringFor("commission")}
-		if helpers.IsHTMX(r) {
+		if hxhttp.IsRequest(r.Header) {
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			if err := commissionFormEl(state.Value, state.Error).Render(w); err != nil {
 				server.Error(w, err, http.StatusInternalServerError)
@@ -62,7 +63,7 @@ func UpdateCommission(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := commissionSuccessEl(rate).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"travelando/internal/system"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func Index(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view := newCalendarView(year, month, data, now)
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := calendarViewEl(view).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

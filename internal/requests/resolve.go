@@ -13,6 +13,7 @@ import (
 
 	"go.leapkit.dev/core/form"
 	"go.leapkit.dev/core/form/validate"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 func ReportResult(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +27,8 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Solicitud inválida", http.StatusBadRequest)
 		return
 	}
-	svc := services.ServiceSetFromCtx(r.Context()).Inquiries
+	set := services.ServiceSetFromCtx(r.Context())
+	svc := set.Inquiries
 	if svc == nil {
 		renderError(w, r, http.StatusInternalServerError, "No se pudo guardar el resultado.")
 		return
@@ -42,9 +44,15 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 		renderError(w, r, http.StatusInternalServerError, "No se pudo cargar la solicitud.")
 		return
 	}
+	cabin, err := reportCabin(set.Cabins, inquiry.CabinID)
+	if err != nil {
+		slog.Error("loading cabin for rental report", "error", err)
+		renderError(w, r, http.StatusInternalServerError, "No se pudo cargar la cabaña.")
+		return
+	}
 	fieldErrors := resolutionFormErrors(r, inquiry.DepositCOP)
 	if fieldErrors.HasAny() {
-		renderReportPage(w, r, http.StatusUnprocessableEntity, "Reportar resultado | Travelando", *inquiry, token, r.Form, fieldErrors)
+		renderReportPage(w, r, http.StatusUnprocessableEntity, "Reportar resultado | Travelando", *inquiry, cabin, token, r.Form, fieldErrors)
 		return
 	}
 	status := models.InquiryStatus(r.FormValue("status"))
@@ -53,7 +61,7 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 		finalTotal, err = strconv.ParseInt(strings.ReplaceAll(r.FormValue("final_total"), ".", ""), 10, 64)
 		if err != nil {
 			fieldErrors["final_total"] = append(fieldErrors["final_total"], errors.New("Ingresa un valor final válido en pesos."))
-			renderReportPage(w, r, http.StatusUnprocessableEntity, "Reportar resultado | Travelando", *inquiry, token, r.Form, fieldErrors)
+			renderReportPage(w, r, http.StatusUnprocessableEntity, "Reportar resultado | Travelando", *inquiry, cabin, token, r.Form, fieldErrors)
 			return
 		}
 	}
@@ -62,14 +70,14 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 			if !setReportFlash(w, r, "La cabaña ya tiene otra reserva confirmada en esas fechas. Contacta a Travelando.") {
 				return
 			}
-			renderReportPage(w, r, http.StatusConflict, "Reportar resultado | Travelando", *inquiry, token, r.Form, nil)
+			renderReportPage(w, r, http.StatusConflict, "Reportar resultado | Travelando", *inquiry, cabin, token, r.Form, nil)
 			return
 		}
 		if errors.Is(err, services.ErrInvalidInput) {
 			if !setReportFlash(w, r, "Esta solicitud ya fue resuelta.") {
 				return
 			}
-			renderReportPage(w, r, http.StatusConflict, "Reportar resultado | Travelando", *inquiry, token, r.Form, nil)
+			renderReportPage(w, r, http.StatusConflict, "Reportar resultado | Travelando", *inquiry, cabin, token, r.Form, nil)
 			return
 		}
 		slog.Error("resolving rental inquiry", "error", err)
@@ -87,13 +95,13 @@ func resolveReport(w http.ResponseWriter, r *http.Request) {
 			if !setReportFlash(w, r, "La reserva quedó registrada, pero no se pudo enviar el correo. Contacta al huésped para compartir la confirmación.") {
 				return
 			}
-			if helpers.IsHTMX(r) {
+			if hxhttp.IsRequest(r.Header) {
 				helpers.Redirect(w, r, "/report/"+token)
 				return
 			}
 		}
 	}
-	renderReportPage(w, r, 0, "Resultado registrado | Travelando", *inquiry, token, nil, nil)
+	renderReportPage(w, r, 0, "Resultado registrado | Travelando", *inquiry, cabin, token, nil, nil)
 }
 
 func resolutionFormErrors(r *http.Request, depositCOP int64) validate.Errors {

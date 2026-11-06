@@ -10,10 +10,11 @@ import (
 
 	"go.leapkit.dev/core/form/validate"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/html"
 )
 
-func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldErrors validate.Errors) Node {
+func reportPage(inquiry models.Inquiry, cabin models.Cabin, token string, values url.Values, fieldErrors validate.Errors) Node {
 	dateText := helpers.DateLabel(inquiry.StayType, inquiry.DateFrom, inquiry.DateTo)
 	stay := helpers.StayTypeLabel(inquiry.StayType)
 	statusLabel := "Pendiente de confirmar"
@@ -43,10 +44,11 @@ func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldEr
 	}
 	return Div(ID("report-page"), Class("mx-auto w-full max-w-2xl px-5 py-10 sm:px-8 sm:py-16"),
 		components.PageHeading("Resultado de la consulta", "Este enlace corresponde solo a esta solicitud."),
-		Div(Class("rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-7"),
+		Div(Class("mt-8"), reportCabinDetails(cabin)),
+		Div(Class("mt-8 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-7"),
 			Div(Class("flex flex-wrap items-start justify-between gap-3 border-b border-line pb-5"),
 				Div(
-					P(Class("text-xs font-extrabold uppercase tracking-[0.16em] text-brand-dark"), Text(inquiry.OwnerName+" · "+inquiry.CabinName)),
+					P(Class("text-label font-extrabold uppercase tracking-[0.08em] text-brand-dark"), Text(inquiry.OwnerName+" · "+inquiry.CabinName)),
 					H2(Class("mt-1 text-xl font-extrabold text-ink"), Text(inquiry.GuestName)),
 				),
 				Span(Class("rounded-full bg-cream px-3 py-1.5 text-xs font-extrabold text-brand-dark"), Text(statusLabel)),
@@ -58,10 +60,9 @@ func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldEr
 				SummaryItem("Precio estimado", "$"+helpers.FormatCOP(inquiry.Estimated)+" COP"),
 				If(inquiry.DepositCOP > 0, SummaryItem("Depósito incluido", "$"+helpers.FormatCOP(inquiry.DepositCOP)+" COP")),
 				If(inquiry.Status == models.InquiryReserved, SummaryItem("Total acordado", "$"+helpers.FormatCOP(inquiry.FinalTotal)+" COP")),
-				If(inquiry.Status == models.InquiryReserved, SummaryItem("Comisión Travelando", "$"+helpers.FormatCOP(inquiry.Commission)+" COP")),
 			),
-			If(inquiry.Status == models.InquiryPending, Form(Method("post"), Action("/report/"+token), Attr("hx-post", "/report/"+token), Attr("hx-target", "#report-page"), Attr("hx-swap", "outerHTML"), Class("border-t border-line pt-5"),
-				P(Class("text-sm leading-6 text-muted"), Text("Cuando terminen de hablar, registra si se concretó. Si reservaron, ingresa el total acordado incluyendo depósito; la comisión se calcula solo sobre alojamiento.")),
+			If(inquiry.Status == models.InquiryPending, Form(Method("post"), Action("/report/"+token), hx.Post("/report/"+token), hx.Target("#report-page"), hx.Swap("outerHTML"), Class("border-t border-line pt-5"),
+				P(Class("text-sm leading-6 text-muted"), Text("Cuando terminen de hablar, registra si se concretó. Si reservaron, ingresa el total acordado incluyendo depósito.")),
 				Div(Class("mt-4 max-w-xs"),
 					components.FieldLabel("status", "Resultado"),
 					Select(ID("status"), Name("status"), Required(), If(fieldErrors.Has("status"), Group{Attr("aria-invalid", "true"), Attr("aria-describedby", "status-error")}), Class(statusClass),
@@ -81,9 +82,62 @@ func reportPage(inquiry models.Inquiry, token string, values url.Values, fieldEr
 	)
 }
 
+func reportCabinDetails(cabin models.Cabin) Node {
+	schedules := make([]Node, 0, 2)
+	if cabin.AcceptsDayUse {
+		schedules = append(schedules, Div(Class("rounded-lg bg-cream px-3 py-2"),
+			P(Class("text-label font-bold uppercase tracking-wide text-muted"), Text("Pasadía")),
+			P(Class("mt-1 text-sm font-bold text-ink"), Text(helpers.ScheduleLabel(models.StayDayUse, cabin.DayStart, cabin.DayEnd))),
+		))
+	}
+	if cabin.AcceptsOvernight {
+		schedules = append(schedules, Div(Class("rounded-lg bg-cream px-3 py-2"),
+			P(Class("text-label font-bold uppercase tracking-wide text-muted"), Text("Estadía")),
+			P(Class("mt-1 text-sm font-bold text-ink"), Text(helpers.ScheduleLabel(models.StayOvernight, cabin.CheckIn, cabin.CheckOut))),
+		))
+	}
+	amenities := make([]Node, 0, len(cabin.Amenities))
+	for _, amenity := range cabin.Amenities {
+		label := amenity.Name
+		switch amenity.ValueType {
+		case models.AmenityBoolean:
+			if !amenity.BooleanValue {
+				continue
+			}
+		case models.AmenityQuantity:
+			if amenity.QuantityValue <= 0 {
+				continue
+			}
+			label += " · " + strconv.Itoa(amenity.QuantityValue)
+		default:
+			continue
+		}
+		amenities = append(amenities, Span(Class("rounded-full bg-cream px-3 py-1.5 text-sm font-semibold text-brand-dark"), Text(label)))
+	}
+	return Article(Class("overflow-hidden rounded-2xl border border-line bg-white"),
+		Div(Class("grid lg:grid-cols-[0.9fr_1.1fr]"),
+			components.CabinPhotoCarouselCover(cabin.Name, cabin.Photos),
+			Div(Class("flex flex-col justify-center p-4 sm:p-6"),
+				P(Class("text-label font-extrabold uppercase tracking-wider text-brand-dark"), Text(cabin.Location)),
+				H2(Class("mt-1 text-2xl font-extrabold text-ink"), Text(cabin.Name)),
+				If(cabin.Description != "", P(Class("mt-3 whitespace-pre-line text-sm leading-6 text-muted"), Text(cabin.Description))),
+				P(Class("mt-4"), Span(Class("inline-flex rounded-full bg-cream px-3 py-1.5 text-sm font-bold text-brand-dark"), Textf("%d huéspedes incluidos", cabin.IncludedGuests))),
+				If(len(schedules) > 0, Div(Class("mt-5"),
+					H3(Class("text-sm font-extrabold text-ink"), Text("Horarios")),
+					Div(Class("mt-2 grid gap-2 sm:grid-cols-2"), Group(schedules)),
+				)),
+				If(len(amenities) > 0, Div(Class("mt-5"),
+					H3(Class("text-sm font-extrabold text-ink"), Text("Incluye")),
+					Div(Class("mt-2 flex flex-wrap gap-2"), Group(amenities)),
+				)),
+			),
+		),
+	)
+}
+
 func SummaryItem(label, value string) Node {
 	return Div(Class("rounded-xl bg-cream p-4"),
-		P(Class("text-xs font-bold uppercase tracking-wider text-muted"), Text(label)),
+		P(Class("text-label font-bold uppercase tracking-wider text-muted"), Text(label)),
 		P(Class("mt-1 text-sm font-extrabold text-ink"), Text(value)),
 	)
 }

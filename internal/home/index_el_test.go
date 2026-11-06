@@ -7,6 +7,123 @@ import (
 	"travelando/internal/system/models"
 )
 
+func TestHomeHeroUsesCatalogPhotoWithoutClaimingAvailabilityOrPrice(t *testing.T) {
+	var html strings.Builder
+	data := PageData{
+		FeaturedCabin: &models.Cabin{
+			Name: "Cabaña del río", Location: "San Francisco",
+			Photos: []models.CabinPhoto{{URL: "/fotos/portada.jpg"}},
+		},
+		StayType: models.StayDayUse, Guests: 2,
+	}
+	if err := IndexEl(data).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	rendered := html.String()
+	for _, want := range []string{
+		`src="/fotos/portada.jpg"`,
+		`alt="Fotografía de una cabaña"`,
+		"Cabaña del río", "San Francisco",
+		`type="radio"`, `name="stay_type"`,
+		"Buscar cabañas disponibles",
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Errorf("home hero missing %q: %s", want, rendered)
+		}
+	}
+	for _, dontWant := range []string{"$100.000", "$200.000", "Disponible hoy"} {
+		if strings.Contains(rendered, dontWant) {
+			t.Errorf("unsearched home shows %q", dontWant)
+		}
+	}
+}
+
+func TestHomeHeroFallsBackWhenCatalogHasNoPhoto(t *testing.T) {
+	var html strings.Builder
+	if err := IndexEl(PageData{}).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	rendered := html.String()
+	if !strings.Contains(rendered, "Tu próximo plan está") || strings.Contains(rendered, "<img") {
+		t.Fatalf("home without cabin photos should keep search copy and omit broken image: %s", rendered)
+	}
+}
+
+func TestHomeContainersUseCompactMobilePadding(t *testing.T) {
+	var html strings.Builder
+	if err := IndexEl(PageData{}).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`class="mx-auto grid max-w-7xl items-center gap-5 px-2 py-2 sm:px-8 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:py-12"`,
+		`class="mx-auto w-full max-w-7xl px-2 py-2 sm:px-8 sm:py-16"`,
+	} {
+		if !strings.Contains(html.String(), want) {
+			t.Errorf("home container missing compact mobile padding %q", want)
+		}
+	}
+}
+
+func TestHomeShowsThreeSampleCabinsBeforeSearchWithoutPricesOrAvailabilityClaims(t *testing.T) {
+	data := PageData{SampleCabins: []models.Cabin{
+		{ID: 1, Name: "Cabaña uno", Location: "Montaña", IncludedGuests: 2, DayPrice: 100000, AcceptsDayUse: true, Photos: []models.CabinPhoto{{URL: "/fotos/uno.jpg"}}},
+		{ID: 2, Name: "Cabaña dos", Location: "Río", IncludedGuests: 4, NightPrice: 200000, AcceptsOvernight: true, Photos: []models.CabinPhoto{{URL: "/fotos/dos.jpg"}}},
+		{ID: 3, Name: "Cabaña tres", Location: "Bosque", IncludedGuests: 3, DayPrice: 150000, NightPrice: 250000, AcceptsDayUse: true, AcceptsOvernight: true, Photos: []models.CabinPhoto{{URL: "/fotos/tres.jpg"}}},
+	}}
+	var html strings.Builder
+	if err := IndexEl(data).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	rendered := html.String()
+	if got := strings.Count(rendered, "<article"); got != 3 {
+		t.Fatalf("home shows %d cabin cards before search, want 3: %s", got, rendered)
+	}
+	for _, want := range []string{
+		"Cabañas para empezar a explorar", "La disponibilidad se confirma al buscar tus fechas.",
+		"Cabaña uno", "Cabaña dos", "Cabaña tres",
+		`href="/cabins/1"`, `href="/cabins/2"`, `href="/cabins/3"`,
+		"Pasadía", "Estadía", "Pasadía y estadía",
+		`class="mt-12 grid gap-6 border-t border-line py-8 sm:mt-16 sm:grid-cols-3 sm:py-10"`,
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Errorf("home sample cabins missing %q", want)
+		}
+	}
+	for _, dontWant := range []string{"$100.000", "$200.000", "$150.000", "Disponible hoy"} {
+		if strings.Contains(rendered, dontWant) {
+			t.Errorf("unsearched sample cabins show %q", dontWant)
+		}
+	}
+}
+
+func TestHomeHidesSampleCabinsAfterSearch(t *testing.T) {
+	var html strings.Builder
+	data := PageData{DidSearch: true, SampleCabins: []models.Cabin{{ID: 1, Name: "Cabaña aleatoria"}}}
+	if err := IndexEl(data).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(html.String(), "Cabañas para empezar a explorar") || strings.Contains(html.String(), "Cabaña aleatoria") {
+		t.Fatalf("sample cabins should be hidden after search: %s", html.String())
+	}
+}
+
+func TestHomeSearchScrollsToResultsAfterSubmit(t *testing.T) {
+	var html strings.Builder
+	if err := IndexEl(PageData{}).Render(&html); err != nil {
+		t.Fatal(err)
+	}
+	rendered := html.String()
+	for _, want := range []string{
+		`action="/#search-results"`,
+		`hx-swap="outerHTML show:#search-results:top"`,
+		`<section id="search-results"`,
+	} {
+		if !strings.Contains(rendered, want) {
+			t.Errorf("home search should scroll to results after submit; missing %q", want)
+		}
+	}
+}
+
 func TestHomeCabinCardShowsPricesForAcceptedStayTypes(t *testing.T) {
 	for _, test := range []struct {
 		name             string

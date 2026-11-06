@@ -7,10 +7,10 @@ import (
 	"unicode/utf8"
 
 	"travelando/internal/system"
-	"travelando/internal/system/helpers"
 	"travelando/internal/system/services"
 
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 const cabinsPerPage = 10
@@ -35,7 +35,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := cabinListResultsEl(page, search).Render(w); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

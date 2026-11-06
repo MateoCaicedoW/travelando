@@ -12,6 +12,7 @@ import (
 	"go.leapkit.dev/core/form"
 	"go.leapkit.dev/core/form/validate"
 	"go.leapkit.dev/core/server"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 	"travelando/internal/system/helpers"
 	"travelando/internal/system/models"
 	"travelando/internal/system/services"
@@ -44,7 +45,7 @@ func AddBlock(w http.ResponseWriter, r *http.Request) {
 	if err := svc.AddExternalBlock(ownerIDFromSession(r), &block); err != nil {
 		switch {
 		case errors.Is(err, services.ErrUnavailable):
-			if helpers.IsHTMX(r) {
+			if hxhttp.IsRequest(r.Header) {
 				addBlockFormError(state, "date_to", "Ese rango ya tiene una reserva o bloqueo.")
 				if err := renderOwnerCalendarWithBlockModal(w, r, state, http.StatusUnprocessableEntity); err != nil {
 					server.Error(w, err, http.StatusInternalServerError)
@@ -69,7 +70,7 @@ func AddBlock(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := renderOwnerCalendar(w, r, http.StatusOK, helpers.FlashSuccess, "Reserva externa agregada al calendario.", true); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}
@@ -111,7 +112,7 @@ func DeleteBlock(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
-	if helpers.IsHTMX(r) {
+	if hxhttp.IsRequest(r.Header) {
 		if err := renderOwnerCalendar(w, r, http.StatusOK, helpers.FlashSuccess, "Reserva externa quitada del calendario.", false); err != nil {
 			server.Error(w, err, http.StatusInternalServerError)
 		}

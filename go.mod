@@ -7,6 +7,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	go.leapkit.dev/core v0.1.16
 	maragu.dev/gomponents v1.4.0
+	maragu.dev/gomponents-htmx v0.6.1
 )
 
 require (
