@@ -1,15 +1,17 @@
 package storage
 
 import (
+	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"crypto/rand"
-	"encoding/hex"
 )
 
 var UploadDir = func() string {
@@ -49,7 +51,7 @@ func (s *service) SavePhoto(file multipart.File, header *multipart.FileHeader) (
 		return "", fmt.Errorf("file size exceeds maximum allowed")
 	}
 	contentType := header.Header.Get("Content-Type")
-	ext, ok := AllowedImageTypes[contentType]
+	_, ok := AllowedImageTypes[contentType]
 	if !ok {
 		return "", fmt.Errorf("file type not allowed: %s", contentType)
 	}
@@ -58,19 +60,27 @@ func (s *service) SavePhoto(file multipart.File, header *multipart.FileHeader) (
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
-	filename := hex.EncodeToString(buf) + ext
+	filename := hex.EncodeToString(buf) + ".jpg"
 	filePath := filepath.Join(s.baseDir, filename)
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode image: %w", err)
+	}
+	var out bytes.Buffer
+	if err := jpeg.Encode(&out, img, &jpeg.Options{Quality: 80}); err != nil {
+		return "", fmt.Errorf("failed to encode image: %w", err)
+	}
 
 	dst, err := os.Create(filePath)
 	if err != nil {
 		return "", err
 	}
 	defer dst.Close()
-
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return "", err
-	}
-	if _, err := io.Copy(dst, file); err != nil {
+	if _, err := io.Copy(dst, &out); err != nil {
 		_ = os.Remove(filePath)
 		return "", err
 	}
