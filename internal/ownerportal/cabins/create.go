@@ -3,7 +3,10 @@ package cabins
 import (
 	"errors"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
+	"sync"
+
 	"travelando/internal/ownerportal/auth"
 
 	admincabins "travelando/internal/admin/cabins"
@@ -53,18 +56,24 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.MultipartForm != nil {
 		photoSvc := set.Storage
+		var wg sync.WaitGroup
 		for _, fh := range r.MultipartForm.File["photos"] {
-			f, err := fh.Open()
-			if err != nil {
-				continue
-			}
-			rel, err := photoSvc.SavePhoto(f, fh)
-			f.Close()
-			if err != nil {
-				continue
-			}
-			_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			wg.Add(1)
+			go func(fh *multipart.FileHeader) {
+				defer wg.Done()
+				f, err := fh.Open()
+				if err != nil {
+					return
+				}
+				defer f.Close()
+				rel, err := photoSvc.SavePhoto(f, fh)
+				if err != nil {
+					return
+				}
+				_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			}(fh)
 		}
+		wg.Wait()
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña agregada y publicada.")
 }

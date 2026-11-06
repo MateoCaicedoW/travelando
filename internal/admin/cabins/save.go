@@ -3,8 +3,10 @@ package cabins
 import (
 	"errors"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"strings"
+	"sync"
 
 	"travelando/internal/system"
 	"travelando/internal/system/components"
@@ -73,23 +75,35 @@ func saveCabin(w http.ResponseWriter, r *http.Request, operation func(services.C
 	// Save uploaded photos, if any.
 	if r.MultipartForm != nil {
 		photoSvc := services.ServiceSetFromCtx(r.Context()).Storage
+		var wg sync.WaitGroup
 		for _, fh := range r.MultipartForm.File["photos"] {
-			f, err := fh.Open()
-			if err != nil {
-				continue
-			}
-			rel, err := photoSvc.SavePhoto(f, fh)
-			f.Close()
-			if err != nil {
-				continue
-			}
-			_ = svc.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			wg.Add(1)
+			go func(fh *multipart.FileHeader) {
+				defer wg.Done()
+				f, err := fh.Open()
+				if err != nil {
+					return
+				}
+				defer f.Close()
+				rel, err := photoSvc.SavePhoto(f, fh)
+				if err != nil {
+					return
+				}
+				_ = svc.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			}(fh)
 		}
+		wg.Wait()
 	}
+	var wg sync.WaitGroup
 	for _, photoURL := range r.Form["removed_photos"] {
-		_ = svc.DeleteCabinPhoto(cabin.ID, photoURL)
-		_ = services.ServiceSetFromCtx(r.Context()).Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
+		wg.Add(1)
+		go func(photoURL string) {
+			defer wg.Done()
+			_ = svc.DeleteCabinPhoto(cabin.ID, photoURL)
+			_ = services.ServiceSetFromCtx(r.Context()).Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
+		}(photoURL)
 	}
+	wg.Wait()
 	helpers.Redirect(w, r, "/admin/cabins")
 }
 

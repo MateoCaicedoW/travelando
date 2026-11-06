@@ -23,7 +23,7 @@ var UploadDir = func() string {
 
 const (
 	PhotosDir   = "photos"
-	MaxFileSize = 10 << 20
+	MaxFileSize = 100 << 20
 )
 
 var AllowedImageTypes = map[string]string{

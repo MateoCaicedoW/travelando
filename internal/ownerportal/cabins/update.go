@@ -3,8 +3,10 @@ package cabins
 import (
 	"errors"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"strings"
+	"sync"
 
 	"travelando/internal/ownerportal/auth"
 
@@ -62,24 +64,36 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		server.Error(w, err, http.StatusInternalServerError)
 		return
 	}
+	var wg sync.WaitGroup
 	for _, photoURL := range r.Form["removed_photos"] {
-		_ = set.Cabins.DeleteCabinPhoto(cabin.ID, photoURL)
-		_ = set.Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
+		wg.Add(1)
+		go func(photoURL string) {
+			defer wg.Done()
+			_ = set.Cabins.DeleteCabinPhoto(cabin.ID, photoURL)
+			_ = set.Storage.DeletePhoto(strings.TrimPrefix(photoURL, "/uploads/"))
+		}(photoURL)
 	}
+	wg.Wait()
 	if r.MultipartForm != nil {
 		photoSvc := set.Storage
+		var wg sync.WaitGroup
 		for _, fh := range r.MultipartForm.File["photos"] {
-			f, err := fh.Open()
-			if err != nil {
-				continue
-			}
-			rel, err := photoSvc.SavePhoto(f, fh)
-			f.Close()
-			if err != nil {
-				continue
-			}
-			_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			wg.Add(1)
+			go func(fh *multipart.FileHeader) {
+				defer wg.Done()
+				f, err := fh.Open()
+				if err != nil {
+					return
+				}
+				defer f.Close()
+				rel, err := photoSvc.SavePhoto(f, fh)
+				if err != nil {
+					return
+				}
+				_ = set.Cabins.AddCabinPhoto(cabin.ID, storage.PublicURL(rel))
+			}(fh)
 		}
+		wg.Wait()
 	}
 	ownerCabinSuccess(w, r, page, "Cabaña actualizada.")
 }
