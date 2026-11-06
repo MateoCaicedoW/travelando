@@ -42,7 +42,7 @@ func (s *ownerService) Owners() ([]models.Owner, error) {
 		return nil, err
 	}
 	rows, err := db.Query(`
-		SELECT o.id, o.name, o.cedula, o.whatsapp, COUNT(DISTINCT c.id),
+		SELECT o.id, o.name, o.cedula, COALESCE(o.whatsapp, ''), COUNT(DISTINCT c.id),
 			COALESCE(SUM(i.commission_paid_amount), 0),
 			COALESCE(SUM(MAX(COALESCE(i.commission_due, 0) - i.commission_paid_amount, 0)), 0),
 			COALESCE(SUM(MAX(i.commission_paid_amount - COALESCE(i.commission_due, 0), 0)), 0),
@@ -81,7 +81,7 @@ func (s *ownerService) OwnerByID(ownerID int64) (*models.Owner, error) {
 		return nil, err
 	}
 	var owner models.Owner
-	err = db.QueryRow(`SELECT id, name, cedula, whatsapp FROM owners WHERE id = ?`, ownerID).
+	err = db.QueryRow(`SELECT id, name, cedula, COALESCE(whatsapp, '') FROM owners WHERE id = ?`, ownerID).
 		Scan(&owner.ID, &owner.Name, &owner.Cedula, &owner.WhatsApp)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -104,7 +104,11 @@ func (s *ownerService) CreateOwner(owner *models.Owner, pin string) error {
 	if err != nil {
 		return err
 	}
-	result, err := db.Exec(`INSERT INTO owners (name, cedula, whatsapp, pin_hash) VALUES (?, ?, ?, ?)`, owner.Name, owner.Cedula, owner.WhatsApp, hash)
+whatsapp := any(owner.WhatsApp)
+	if owner.WhatsApp == "" {
+		whatsapp = nil
+	}
+	result, err := db.Exec(`INSERT INTO owners (name, cedula, whatsapp, pin_hash) VALUES (?, ?, ?, ?)`, owner.Name, owner.Cedula, whatsapp, hash)
 	if err != nil {
 		if ownerConflict(err) {
 			return ErrConflict
@@ -135,13 +139,17 @@ func (s *ownerService) UpdateOwner(owner *models.Owner, pin string) error {
 		}
 	}
 	var result sql.Result
+	whatsapp := any(owner.WhatsApp)
+	if owner.WhatsApp == "" {
+		whatsapp = nil
+	}
 	if pin == "" {
-		result, err = db.Exec(`UPDATE owners SET name = ?, cedula = ?, whatsapp = ?, auth_version = auth_version + CASE WHEN cedula <> ? OR whatsapp <> ? THEN 1 ELSE 0 END WHERE id = ?`, owner.Name, owner.Cedula, owner.WhatsApp, owner.Cedula, owner.WhatsApp, owner.ID)
+		result, err = db.Exec(`UPDATE owners SET name = ?, cedula = ?, whatsapp = ?, auth_version = auth_version + CASE WHEN cedula <> ? OR whatsapp <> ? THEN 1 ELSE 0 END WHERE id = ?`, owner.Name, owner.Cedula, whatsapp, owner.Cedula, whatsapp, owner.ID)
 	} else {
 		var hash string
 		hash, err = hashOwnerPIN(pin)
 		if err == nil {
-			result, err = db.Exec(`UPDATE owners SET name = ?, cedula = ?, whatsapp = ?, pin_hash = ?, failed_attempts = 0, locked_until = 0, auth_version = auth_version + 1 WHERE id = ?`, owner.Name, owner.Cedula, owner.WhatsApp, hash, owner.ID)
+			result, err = db.Exec(`UPDATE owners SET name = ?, cedula = ?, whatsapp = ?, pin_hash = ?, failed_attempts = 0, locked_until = 0, auth_version = auth_version + 1 WHERE id = ?`, owner.Name, owner.Cedula, whatsapp, hash, owner.ID)
 		}
 	}
 	if err != nil {
@@ -165,7 +173,7 @@ func (s *ownerService) AuthenticateOwner(cedula, pin string) (*models.Owner, err
 	var owner models.Owner
 	var pinHash string
 	var lockedUntil int64
-	err = db.QueryRow(`SELECT id, name, cedula, whatsapp, pin_hash, locked_until, auth_version FROM owners WHERE cedula = ? AND cedula <> '' AND active = 1`, cedula).
+	err = db.QueryRow(`SELECT id, name, cedula, COALESCE(whatsapp, ''), pin_hash, locked_until, auth_version FROM owners WHERE cedula = ? AND cedula <> '' AND active = 1`, cedula).
 		Scan(&owner.ID, &owner.Name, &owner.Cedula, &owner.WhatsApp, &pinHash, &lockedUntil, &owner.SessionVersion)
 	if errors.Is(err, sql.ErrNoRows) {
 		verifyOwnerPIN(pin, unknownOwnerPINHash())
@@ -300,7 +308,7 @@ func validateOwner(owner *models.Owner, pin string) error {
 	owner.Name = strings.TrimSpace(owner.Name)
 	owner.Cedula = helpers.DigitsOnly(owner.Cedula)
 	owner.WhatsApp = helpers.DigitsOnly(owner.WhatsApp)
-	if owner.Name == "" || utf8.RuneCountInString(owner.Name) > 120 || !validCedula(owner.Cedula) || len(owner.WhatsApp) < 10 || len(owner.WhatsApp) > 15 || pin != "" && !validOwnerPIN(pin) {
+	if owner.Name == "" || utf8.RuneCountInString(owner.Name) > 120 || !validCedula(owner.Cedula) || (owner.WhatsApp != "" && (len(owner.WhatsApp) < 10 || len(owner.WhatsApp) > 15)) || pin != "" && !validOwnerPIN(pin) {
 		return ErrInvalidInput
 	}
 	return nil
