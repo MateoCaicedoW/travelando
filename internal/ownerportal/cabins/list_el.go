@@ -18,7 +18,7 @@ func ListContentEl(result services.CabinPageResult) Node {
 			Button(Type("button"), hx.Get(ownerNewCabinURL(result.Page)), hx.Target("body"), hx.Swap("beforeend"), hx.DisabledElt("this"), Class("inline-flex min-h-10 items-center rounded-lg bg-brand-dark px-4 py-2 text-sm font-extrabold text-white hover:brightness-90"), Text("Agregar cabaña")),
 		),
 		If(len(result.Cabins) == 0, Div(Class("mt-4 rounded-2xl border border-line bg-white px-5 py-8 text-center text-sm text-muted"), Text("Todavía no tienes cabañas. Agrega una para publicarla."))),
-		If(len(result.Cabins) > 0, Div(ID("owner-cabin-cards"), Class("grid gap-5 sm:grid-cols-2 xl:grid-cols-3"),
+		If(len(result.Cabins) > 0, Div(ID("owner-cabin-cards"), Class("mt-4 grid grid-cols-2 gap-0 sm:gap-5 sm:grid-cols-2 xl:grid-cols-3"),
 			Map(result.Cabins, func(cabin models.Cabin) Node { return ownerCabinCardEl(cabin, result.Page) }),
 		)),
 		If(result.TotalPages > 1, Nav(Attr("aria-label", "Paginación de mis cabañas"), Class("grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-t border-line pt-4 sm:gap-4"),

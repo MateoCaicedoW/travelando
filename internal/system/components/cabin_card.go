@@ -64,7 +64,7 @@ func CabinPrices(cabin models.Cabin) Node {
 	}
 	class := "grid grid-cols-1 gap-3"
 	if len(prices) > 1 {
-		class = "grid grid-cols-2 gap-3"
+		class = "flex flex-wrap gap-3"
 	}
 	return Div(Class(class), Group(prices))
 }

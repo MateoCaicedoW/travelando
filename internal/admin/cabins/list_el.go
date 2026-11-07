@@ -37,7 +37,7 @@ func cabinListResultsEl(page services.CabinPageResult, search string) Node {
 			If(search != "", P(Class("text-lg font-extrabold text-ink"), Text("No encontramos cabañas"))),
 			If(search != "", P(Class("mt-1 text-sm text-muted"), Text("Prueba con otro nombre, ubicación o contacto."))),
 		)),
-		Div(Class("mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"), Map(page.Cabins, func(cabin models.Cabin) Node {
+		Div(Class("mt-4 grid grid-cols-2 gap-0 md:gap-4 md:grid-cols-2 xl:grid-cols-3"), Map(page.Cabins, func(cabin models.Cabin) Node {
 			status := "Publicada"
 			ownerContact := cabin.OwnerName + " · WhatsApp " + cabin.OwnerWhatsApp
 			if cabin.OwnerID == 0 {
