@@ -16,11 +16,11 @@ import (
 
 func ownersEl(owners []models.Owner, editID int64, editState *ownerFormState) Node {
 	return Div(ID("owners-content"), Class("mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6"),
-		Div(Class("flex flex-wrap items-start justify-between gap-x-4"),
-			components.PageHeading("Dueños", "Administra sus datos, cabañas asignadas y comisiones."),
+		Div(Class("flex flex-wrap items-start justify-between gap-x-4 gap-y-4"),
+			Div(Class("max-w-2xl sm:mb-4"), H1(Class("text-3xl font-extrabold tracking-tight text-ink sm:text-4xl"), Text("Dueños")), P(Class("mt-1.5 max-w-prose text-base leading-6 text-muted"), Text("Administra sus datos, cabañas asignadas y comisiones."))),
 			Button(Type("button"), hx.Get("/admin/owners/new"), hx.Target("body"), hx.Swap("beforeend"), hx.DisabledElt("this"), Class("inline-flex min-h-11 items-center justify-center rounded-lg bg-brand-dark px-4 py-2 font-extrabold text-white hover:brightness-90"), Text("Agregar dueño")),
 		),
-		Section(Class("reservation-list-content overflow-hidden rounded-2xl border border-line bg-white"),
+		Section(Class("mt-4 sm:mt-0 reservation-list-content overflow-hidden rounded-2xl border border-line bg-white"),
 			Div(Class("border-b border-line p-4 sm:px-5"), H2(Class("text-lg font-extrabold text-ink"), Text("Dueños registrados"))),
 			Div(Class("reservation-actions-scroll overflow-x-auto"),
 				Table(Attr("role", "table"), Class("responsive-data-table w-full min-w-[1020px] text-left text-sm"),
