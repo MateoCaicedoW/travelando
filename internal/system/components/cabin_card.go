@@ -28,16 +28,14 @@ func CabinCard(cabin models.Cabin, options CabinCardOptions) Node {
 	if options.Compact {
 		photoAspect = "aspect-[16/10]"
 	}
-	return Article(Class("group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white transition hover:-translate-y-0.5 hover:shadow-md"),
+	return Article(Class("group flex h-full flex-col overflow-hidden rounded-none border-b border-r border-line bg-white transition hover:-translate-y-0.5 hover:shadow-md sm:rounded-2xl sm:border sm:border-line"),
 		cabinPhotoCarousel(cabin.Name, cabin.Photos, photoAspect),
 		Div(Class("flex flex-1 flex-col p-4 sm:p-5"),
 			Div(Class("flex items-start justify-between gap-3"),
-				Div(Class("min-w-0"),
-					P(Class("truncate text-label font-extrabold uppercase tracking-wider text-brand-dark"), Text(cabin.Location)),
-					H2(Class("mt-1 truncate text-xl font-extrabold text-ink"), Text(cabin.Name)),
-				),
+				H2(Class("min-w-0 truncate text-xl font-extrabold text-ink"), Text(cabin.Name)),
 				If(options.Badge != nil, Div(Class("shrink-0"), options.Badge)),
 			),
+			P(Class("mt-1 line-clamp-2 text-[10px] font-extrabold uppercase leading-tight tracking-wide text-brand-dark sm:text-label"), Text(cabin.Location)),
 			If(!options.Compact && cabin.Description != "", P(Class("mt-3 line-clamp-2 min-h-11 text-sm leading-6 text-muted"), Text(cabin.Description))),
 			If(!options.Compact && len(cabin.Amenities) > 0, Div(Class("mt-3"), cabinAmenitySummary(cabin.Amenities))),
 			Div(Class("mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-muted"),

@@ -63,7 +63,7 @@ func IndexEl(data PageData) Node {
 					Textf("%s · %s · %d huéspedes", stayLabel(data.StayType), searchDateLabel(data.DateFrom), data.Guests),
 				),
 			)),
-			If(data.DidSearch && !data.SearchErrors.HasAny() && data.Error == "" && len(data.Cabins) > 0, Div(Class("grid gap-5 md:grid-cols-2 xl:grid-cols-3"),
+			If(data.DidSearch && !data.SearchErrors.HasAny() && data.Error == "" && len(data.Cabins) > 0, Div(Class("grid grid-cols-2 gap-0 md:gap-5 md:grid-cols-2 xl:grid-cols-3"),
 				Map(data.Cabins, func(cabin models.Cabin) Node {
 					stay := "Pasadía"
 					if data.StayType == models.StayOvernight {
@@ -86,7 +86,7 @@ func IndexEl(data PageData) Node {
 					H2(Class("text-3xl font-extrabold tracking-tight text-ink sm:text-4xl"), Text("Cabañas para empezar a explorar")),
 					P(Class("mt-2 text-base leading-7 text-muted"), Text("Mira algunas opciones del catálogo. La disponibilidad se confirma al buscar tus fechas.")),
 				),
-				Div(Class("grid gap-5 md:grid-cols-2 xl:grid-cols-3"),
+				Div(Class("grid grid-cols-2 gap-0 md:gap-5 md:grid-cols-2 xl:grid-cols-3"),
 					Map(data.SampleCabins, func(cabin models.Cabin) Node {
 						return components.CabinCard(cabin, components.CabinCardOptions{
 							Badge:   homeCabinStayBadge(cabin),
@@ -122,26 +122,13 @@ func homeCabinStayBadge(cabin models.Cabin) Node {
 }
 
 func homeHero(cabin *models.Cabin) Node {
-	if cabin == nil || len(cabin.Photos) == 0 {
-		return Div(Class("flex min-h-64 items-end rounded-2xl bg-forest-soft p-6 sm:min-h-80 sm:p-8 lg:min-h-[520px]"),
-			H1(Class("max-w-[12ch] text-4xl font-black leading-[1.06] tracking-[-0.04em] text-ink sm:text-5xl"),
-				Text("Tu próximo plan está "), Span(Class("text-brand-dark"), Text("más cerca.")),
-			),
-		)
-	}
-	photo := cabin.Photos[0]
-	caption := cabin.Name
-	if cabin.Location != "" {
-		caption += " · " + cabin.Location
-	}
 	return Figure(Class("relative isolate aspect-[3/2] overflow-hidden rounded-2xl bg-forest lg:aspect-auto lg:min-h-[520px]"),
-		Img(Src(photo.URL), Alt("Fotografía de una cabaña"), Attr("fetchpriority", "high"), Class("absolute inset-0 size-full object-cover")),
+		Img(Src("/assets/hero-home.png"), Alt("Travelando"), Attr("fetchpriority", "high"), Class("absolute inset-0 size-full object-cover")),
 		Div(Attr("aria-hidden", "true"), Class("absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/25 to-transparent")),
 		FigCaption(Class("absolute inset-x-0 bottom-0 p-6 text-white sm:p-8"),
 			H1(Class("max-w-[12ch] text-4xl font-black leading-[1.06] tracking-[-0.04em] sm:text-5xl"),
 				Text("Tu próximo plan está "), Span(Class("text-brand"), Text("más cerca.")),
 			),
-			P(Class("mt-4 text-sm font-semibold text-white"), Text(caption)),
 		),
 	)
 }
@@ -173,7 +160,7 @@ func homeCabinCardPrice(cabin models.Cabin, data PageData) Node {
 	}
 	class := "grid grid-cols-1 gap-2"
 	if len(prices) == 2 {
-		class = "grid grid-cols-2 gap-2 sm:gap-3"
+		class = "grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3"
 	}
 	return Div(Class(class), Group(prices))
 }

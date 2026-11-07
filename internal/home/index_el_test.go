@@ -21,9 +21,7 @@ func TestHomeHeroUsesCatalogPhotoWithoutClaimingAvailabilityOrPrice(t *testing.T
 	}
 	rendered := html.String()
 	for _, want := range []string{
-		`src="/fotos/portada.jpg"`,
-		`alt="Fotografía de una cabaña"`,
-		"Cabaña del río", "San Francisco",
+		`src="/assets/hero-home.png"`,
 		`type="radio"`, `name="stay_type"`,
 		"Buscar cabañas disponibles",
 	} {
@@ -44,7 +42,7 @@ func TestHomeHeroFallsBackWhenCatalogHasNoPhoto(t *testing.T) {
 		t.Fatal(err)
 	}
 	rendered := html.String()
-	if !strings.Contains(rendered, "Tu próximo plan está") || strings.Contains(rendered, "<img") {
+	if !strings.Contains(rendered, "Tu próximo plan está") || !strings.Contains(rendered, `src="/assets/hero-home.png"`) {
 		t.Fatalf("home without cabin photos should keep search copy and omit broken image: %s", rendered)
 	}
 }
@@ -139,23 +137,23 @@ func TestHomeCabinCardShowsPricesForAcceptedStayTypes(t *testing.T) {
 		{
 			name: "both modalities while searching day use", stayType: models.StayDayUse,
 			acceptsDayUse: true, acceptsOvernight: true, dateFrom: "2026-11-15", guests: 2,
-			want:     []string{"$150.000", "Pasadía", "$250.000", "1 noche · incluye depósito", "grid grid-cols-2", `target="_blank"`, `rel="noopener noreferrer"`},
+			want:     []string{"$150.000", "Pasadía", "$250.000", "1 noche · incluye depósito", "grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3", `target="_blank"`, `rel="noopener noreferrer"`},
 			dontWant: []string{"Vista al valle", "BBQ", "08:00 a 18:00"},
 		},
 		{
 			name: "both modalities while searching overnight", stayType: models.StayOvernight,
 			acceptsDayUse: true, acceptsOvernight: true, dateFrom: "2026-11-15", dateTo: "2026-11-17", guests: 2,
-			want: []string{"$450.000", "Estadía completa · incluye depósito", "$150.000", "Pasadía", "grid grid-cols-2"},
+			want: []string{"$450.000", "Estadía completa · incluye depósito", "$150.000", "Pasadía", "grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3"},
 		},
 		{
 			name: "only accepted modality", stayType: models.StayDayUse,
 			acceptsDayUse: true, dateFrom: "2026-11-15", guests: 2,
-			want: []string{"$150.000", "Pasadía", "grid grid-cols-1"}, dontWant: []string{"1 noche", "$250.000"},
+			want: []string{"$150.000", "Pasadía", "grid grid-cols-1 gap-2"}, dontWant: []string{"1 noche", "$250.000"},
 		},
 		{
 			name: "overnight only", stayType: models.StayOvernight,
 			acceptsOvernight: true, dateFrom: "2026-11-15", dateTo: "2026-11-17", guests: 2,
-			want: []string{"$450.000", "Estadía completa · incluye depósito", "grid grid-cols-1"}, dontWant: []string{"$150.000"},
+			want: []string{"$450.000", "Estadía completa · incluye depósito", "grid grid-cols-1 gap-2"}, dontWant: []string{"$150.000"},
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
