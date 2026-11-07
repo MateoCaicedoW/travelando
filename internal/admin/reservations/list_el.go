@@ -25,7 +25,7 @@ func reservationsPageEl(inquiries []models.Inquiry) Node {
 }
 
 func reservationsContentEl(inquiries []models.Inquiry) Node {
-	return Div(ID("reservations-content"), Class("reservation-list-content overflow-hidden rounded-2xl border border-line bg-white"),
+	return Div(ID("reservations-content"), Class("mt-2 md:mt-0 reservation-list-content overflow-hidden rounded-2xl border border-line bg-white"),
 		If(len(inquiries) == 0, Div(Attr("role", "status"), Class("px-5 py-8 text-center"),
 			P(Class("text-lg font-extrabold text-ink"), Text("Aún no hay reservas")),
 			P(Class("mt-1 text-sm text-muted"), Text("Las solicitudes y reservas aparecerán aquí.")),
