@@ -65,12 +65,12 @@ func CabinEl(cabin models.Cabin, data PageData) Node {
 		Div(Class("mt-6 grid items-start gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12"),
 			Div(
 				components.CabinPhotoCarousel(cabin.Name, cabin.Photos),
-				Div(Class("mt-7 flex flex-wrap items-center justify-between gap-3"),
+				Div(Class("mt-7"),
 					Div(
 						P(Class("text-label font-extrabold uppercase tracking-[0.08em] text-brand-dark"), Text(cabin.Location)),
 						H1(Class("mt-2 text-3xl font-black tracking-tight text-ink sm:text-4xl"), Text(cabin.Name)),
 					),
-					Span(Class("rounded-full bg-cream px-4 py-2 text-sm font-bold text-brand-dark"), Textf("%d personas incluidas", cabin.IncludedGuests)),
+					Span(Class("mt-3 inline-flex rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Textf("%d personas incluidas", cabin.IncludedGuests)),
 				),
 				P(Class("mt-5 whitespace-pre-line text-base leading-7 text-muted"), Text(cabin.Description)),
 				If(len(cabin.Amenities) > 0, Div(Class("mt-7"),

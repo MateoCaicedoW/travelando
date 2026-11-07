@@ -70,7 +70,7 @@ func IndexEl(data PageData) Node {
 						stay = "Estadía"
 					}
 					return components.CabinCard(cabin, components.CabinCardOptions{
-						Badge:   Span(Class("shrink-0 rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Text(stay)),
+						Badge:   Span(Class("rounded-full bg-cream px-2 py-0.5 text-[10px] font-bold text-brand-dark"), Text(stay)),
 						Price:   homeCabinCardPrice(cabin, data),
 						Action:  A(Href(resultsLink(cabin.ID, data)), Target("_blank"), Rel("noopener noreferrer"), Class("inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg bg-brand-dark px-4 py-2 text-sm font-bold text-white transition hover:brightness-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-dark"), Text("Ver cabaña")),
 						Compact: true,
@@ -118,7 +118,7 @@ func homeCabinStayBadge(cabin models.Cabin) Node {
 			label = "Pasadía y estadía"
 		}
 	}
-	return Span(Class("shrink-0 rounded-full bg-cream px-3 py-1 text-xs font-bold text-brand-dark"), Text(label))
+	return Span(Class("rounded-full bg-cream px-2 py-0.5 text-[10px] font-bold text-brand-dark"), Text(label))
 }
 
 func homeHero(cabin *models.Cabin) Node {
