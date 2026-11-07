@@ -16,6 +16,8 @@ import (
 
 type InquiryService interface {
 	CreateInquiry(*models.Inquiry) (string, error)
+	CreateReservation(cabinID int64, data *models.ReservationCreate) (int64, error)
+	CreateReservationForOwner(ownerID int64, data *models.ReservationCreate) (int64, error)
 	Inquiries() ([]models.Inquiry, error)
 	ReservationsForOwner(ownerID int64) ([]models.Inquiry, error)
 	InquiryByToken(token string) (*models.Inquiry, error)
@@ -166,6 +168,165 @@ func (s *inquiryService) CreateInquiry(inquiry *models.Inquiry) (string, error) 
 	inquiry.DepositCOP = deposit
 	inquiry.Status = models.InquiryPending
 	return token, nil
+}
+
+func (s *inquiryService) CreateReservation(cabinID int64, data *models.ReservationCreate) (int64, error) {
+	return s.createReservation(cabinID, 0, data)
+}
+
+func (s *inquiryService) CreateReservationForOwner(ownerID int64, data *models.ReservationCreate) (int64, error) {
+	if ownerID < 1 || data == nil || data.CabinID < 1 {
+		return 0, ErrInvalidInput
+	}
+	return s.createReservation(data.CabinID, ownerID, data)
+}
+
+func (s *inquiryService) createReservation(cabinID, ownerID int64, data *models.ReservationCreate) (int64, error) {
+	if data == nil || cabinID < 1 {
+		return 0, ErrInvalidInput
+	}
+	data.GuestName = strings.TrimSpace(data.GuestName)
+	data.GuestCedula = helpers.DigitsOnly(data.GuestCedula)
+	data.GuestPhone = helpers.DigitsOnly(data.GuestPhone)
+	data.GuestEmail = strings.TrimSpace(data.GuestEmail)
+	if data.GuestName == "" || len(data.GuestName) > 120 || len(data.GuestCedula) < 5 || len(data.GuestCedula) > 15 || len(data.GuestPhone) < 8 || len(data.GuestPhone) > 15 || len(data.GuestEmail) > 254 || data.Guests < 1 || data.DepositCOP < 0 || data.DepositCOP > MaxAmountCOP {
+		return 0, ErrInvalidInput
+	}
+	address, err := mail.ParseAddress(data.GuestEmail)
+	if err != nil || address.Address != data.GuestEmail {
+		return 0, ErrInvalidInput
+	}
+	from, err := time.Parse("2006-01-02", data.DateFrom)
+	if err != nil {
+		return 0, ErrInvalidInput
+	}
+	if data.DateFrom < time.Now().Format("2006-01-02") {
+		return 0, ErrInvalidInput
+	}
+	var to time.Time
+	if data.StayType == models.StayDayUse {
+		if data.DateTo != "" {
+			to, err = time.Parse("2006-01-02", data.DateTo)
+			if err != nil {
+				return 0, ErrInvalidInput
+			}
+		}
+		if !helpers.SameDate(from, to) {
+			return 0, ErrInvalidInput
+		}
+		data.DateTo = data.DateFrom
+	} else if data.StayType == models.StayOvernight {
+		to, err = time.Parse("2006-01-02", data.DateTo)
+		if err != nil || !to.After(from) || to.Sub(from).Hours()/24 > 365 {
+			return 0, ErrInvalidInput
+		}
+	} else {
+		return 0, ErrInvalidInput
+	}
+
+	db, err := s.conn()
+	if err != nil {
+		return 0, err
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var cabin models.Cabin
+	query := cabinSelect + ` WHERE c.id = ? AND c.active = 1 AND o.active = 1 AND o.whatsapp <> ''`
+	args := []any{cabinID}
+	if ownerID > 0 {
+		query += ` AND c.owner_id = ?`
+		args = append(args, ownerID)
+	}
+	err = tx.QueryRow(query, args...).Scan(cabinScanArgs(&cabin)...)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrNotFound
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	if data.StayType == models.StayDayUse && !cabin.AcceptsDayUse || data.StayType == models.StayOvernight && !cabin.AcceptsOvernight {
+		return 0, ErrStayTypeNotAccepted
+	}
+	quote, err := Quote(QuoteInput{
+		Type: data.StayType, StartDate: from, EndDate: to, Guests: data.Guests,
+		IncludedGuests: cabin.IncludedGuests, ExtraGuestPrice: cabin.ExtraGuestPrice,
+		DayPrice: cabin.DayPrice, NightPrice: cabin.NightPrice,
+	})
+	if err != nil {
+		return 0, err
+	}
+	finalTotal, err := AddDepositToQuote(quote, data.DepositCOP)
+	if err != nil {
+		return 0, err
+	}
+
+	var commissionBP int
+	if err := tx.QueryRow(`SELECT commission_bps FROM commission_settings WHERE id = 1`).Scan(&commissionBP); err != nil {
+		return 0, err
+	}
+	commission, err := Commission(finalTotal-data.DepositCOP, commissionBP)
+	if err != nil {
+		return 0, err
+	}
+
+	dateTo := data.DateTo
+	startTime, endTime := cabin.CheckIn, cabin.CheckOut
+	if data.StayType == models.StayDayUse {
+		dateTo = from.AddDate(0, 0, 1).Format("2006-01-02")
+		startTime, endTime = cabin.DayStart, cabin.DayEnd
+	}
+	cleaningHours := cabin.CleaningHours
+	startAt, readyAt, err := reservationWindow(cabin, data.StayType, data.DateFrom, data.DateTo)
+	if err != nil {
+		return 0, err
+	}
+	var occupied int
+	err = tx.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM inquiries i
+			WHERE i.cabin_id = ? AND i.status = 'reserved'
+			  AND datetime(?) < datetime(
+				  (CASE WHEN i.stay_type = 'day_use' THEN i.date_from ELSE i.date_to END) || ' ' || i.end_time,
+				  printf('+%d hours', i.cleaning_hours)
+			  )
+			  AND datetime(?) > datetime(i.date_from || ' ' || i.start_time)
+		) OR EXISTS (
+			SELECT 1 FROM cabin_blocks b
+			WHERE b.cabin_id = ? AND b.date_from < ? AND b.date_to > ?
+		)
+	`, cabin.ID, startAt.Format("2006-01-02 15:04:05"), readyAt.Format("2006-01-02 15:04:05"), cabin.ID, dateTo, data.DateFrom).Scan(&occupied)
+	if err != nil {
+		return 0, err
+	}
+	if occupied != 0 {
+		return 0, ErrUnavailable
+	}
+
+	token, err := newReportToken()
+	if err != nil {
+		return 0, err
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	result, err := tx.Exec(`
+		INSERT INTO inquiries (cabin_id, guest_name, guest_cedula, guest_phone, guest_email, terms_accepted_at, terms_document_sha256, report_token_hash, stay_type, date_from, date_to, start_time, end_time, cleaning_hours, guests, estimated_total, deposit_cop, final_total, commission_bps, commission_due, status, resolved_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, cabin.ID, data.GuestName, data.GuestCedula, data.GuestPhone, data.GuestEmail, now, models.CurrentTermsDocumentSHA256, hashToken(token), data.StayType, data.DateFrom, dateTo, startTime, endTime, cleaningHours, data.Guests, finalTotal, data.DepositCOP, finalTotal, commissionBP, commission, models.InquiryReserved, now)
+	if err != nil {
+		return 0, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func (s *inquiryService) MarkCommissionPaid(inquiryID int64) error {

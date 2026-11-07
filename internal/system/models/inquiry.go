@@ -81,3 +81,16 @@ type InquiryUpdate struct {
 	DateTo     string
 	Guests     int
 }
+
+type ReservationCreate struct {
+	CabinID     int64
+	GuestName   string
+	GuestCedula string
+	GuestPhone  string
+	GuestEmail  string
+	StayType    StayType
+	DateFrom    string
+	DateTo      string
+	Guests      int
+	DepositCOP  int64
+}

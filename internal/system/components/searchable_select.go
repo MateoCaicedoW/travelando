@@ -12,12 +12,16 @@ type SearchableOption struct {
 	Label string
 }
 
-func SearchableSelect(id, name, label, placeholder, value string, options []SearchableOption, required bool, errorMessage string) Node {
+func SearchableSelect(id, name, label, placeholder, value string, options []SearchableOption, required bool, errorMessage string, extraClasses ...string) Node {
 	inputClass := "min-h-11 w-full rounded-xl border border-line bg-white px-4 py-2.5 pr-10 text-base text-ink placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/20"
 	if errorMessage != "" {
 		inputClass += " border-red-300 focus:border-red-500 focus:ring-red-200"
 	}
-	return Div(Class("min-w-0"),
+	spanClass := ""
+	if len(extraClasses) > 0 {
+		spanClass = extraClasses[0]
+	}
+	return Div(Class("min-w-0 "+spanClass),
 		FieldLabel(id, label),
 		Div(ID(id+"-combobox"), Attr("data-controller", "searchable-select"), Attr("data-action", "change->searchable-select#clearValidity"), Class("combobox travelando-combobox relative w-full"), If(required, Attr("data-required", "true")),
 			Input(ID(id), Type("text"), Role("combobox"), Attr("data-searchable-select-target", "input"), Attr("data-action", "input->searchable-select#clearValidity focus->searchable-select#selectValue"), Placeholder(placeholder), Attr("autocomplete", "off"), Attr("autocorrect", "off"), Attr("spellcheck", "false"), Attr("aria-autocomplete", "list"), Attr("aria-expanded", "false"), Attr("aria-controls", id+"-listbox"), If(required, Group{Required(), Attr("aria-required", "true")}), If(errorMessage != "", Group{Attr("aria-invalid", "true"), Attr("aria-describedby", id+"-error")}), Class(inputClass)),
